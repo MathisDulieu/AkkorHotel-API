@@ -17,7 +17,10 @@ public class User {
 
     private String username;
     private String email;
-    private boolean isValidEmail;
+
+    @Builder.Default
+    private Boolean isValidEmail = false;
+
     private String password;
 
     @Builder.Default

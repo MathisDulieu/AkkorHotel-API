@@ -1,6 +1,7 @@
 package com.akkorhotel.hotel.dao;
 
 import com.akkorhotel.hotel.model.User;
+import com.akkorhotel.hotel.model.UserRole;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,39 @@ class UserDaoTest {
                         entry("isValidEmail", false),
                         entry("role", "USER")
                 ));
+    }
+
+    @Test
+    void shouldReturnUserRole() {
+        // Arrange
+        mongoTemplate.insert("""
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+                    "username": "username",
+                    "password": "password",
+                    "email": "email",
+                    "isValidEmail": true,
+                    "role": "ADMIN"
+                }
+                """, "USERS");
+
+        // Act
+        UserRole userRole = userDao.getUserRole("f2cccd2f-5711-4356-a13a-f687dc983ce1");
+
+        // Assert
+        assertThat(userRole).isEqualTo(UserRole.ADMIN);
+    }
+
+    @Test
+    void shouldReturnNull_whenUserDoesNotExist() {
+        // Arrange
+        String userId = "non-existent-user-id";
+
+        // Act
+        UserRole userRole = userDao.getUserRole(userId);
+
+        // Assert
+        assertThat(userRole).isNull();
     }
 
 }

@@ -69,4 +69,5 @@ public class HotelConfigurationTest {
     public MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter(ObjectMapper objectMapper) {
         return new MappingJackson2HttpMessageConverter(objectMapper);
     }
+
 }
