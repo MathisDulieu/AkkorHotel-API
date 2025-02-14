@@ -5,6 +5,8 @@ import com.akkorhotel.hotel.model.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
@@ -34,6 +36,13 @@ public class UserDao {
                 .findFirst()
                 .map(User::getRole)
                 .orElse(null);
+    }
+
+    public boolean isUserInDatabase(String username, String email) {
+        return mongoTemplate.exists(new Query(new Criteria().orOperator(
+                Criteria.where("username").is(username),
+                Criteria.where("email").is(email)
+        )), USER_COLLECTION);
     }
 
 }

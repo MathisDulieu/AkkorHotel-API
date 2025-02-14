@@ -90,4 +90,68 @@ class UserDaoTest {
         assertThat(userRole).isNull();
     }
 
+    @Test
+    void shouldReturnTrue_whenUsernameExistsInDatabase() {
+        // Arrange
+        mongoTemplate.insert("""
+            {
+                "_id": "id",
+                "username": "existingUsername",
+                "password": "password",
+                "email": "test@example.com",
+                "isValidEmail": true,
+                "role": "USER"
+            }
+            """, "USERS");
+
+        // Act
+        boolean isUserInDatabase = userDao.isUserInDatabase("existingUsername", "not.existing@example.com");
+
+        // Assert
+        assertThat(isUserInDatabase).isTrue();
+    }
+
+    @Test
+    void shouldReturnTrue_whenUserEmailExistsInDatabase() {
+        // Arrange
+        mongoTemplate.insert("""
+            {
+                "_id": "id",
+                "username": "username",
+                "password": "password",
+                "email": "existing.email@example.com",
+                "isValidEmail": true,
+                "role": "USER"
+            }
+            """, "USERS");
+
+        // Act
+        boolean isUserInDatabase = userDao.isUserInDatabase("notExistingUsername", "existing.email@example.com");
+
+        // Assert
+        assertThat(isUserInDatabase).isTrue();
+    }
+
+    @Test
+    void shouldReturnFalse_whenUserDoesNotExistInDatabase() {
+        // Arrange
+        mongoTemplate.insert("""
+            {
+                "_id": "id",
+                "username": "username",
+                "password": "password",
+                "email": "email@example.com",
+                "isValidEmail": true,
+                "role": "USER"
+            }
+            """, "USERS");
+
+        // Act
+        boolean exists = userDao.isUserInDatabase("nonExistentUser", "non.existent@example.com");
+
+        // Assert
+        assertThat(exists).isFalse();
+    }
+
+
 }

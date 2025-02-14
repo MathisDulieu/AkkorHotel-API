@@ -39,8 +39,17 @@ public class JwtTokenService {
         return token == null ? null : resolveUserIdFromToken(token);
     }
 
-    public void generateEmailConfirmationToken() {
+    public String generateEmailConfirmationToken(String userId) {
+        Instant now = Instant.now();
+        Date expiryDate = Date.from(now.plusSeconds(TOKEN_EXPIRATION_TIME));
 
+        return Jwts.builder()
+                .setSubject(userId)
+                .claim("type", "email_confirmation")
+                .setIssuedAt(Date.from(now))
+                .setExpiration(expiryDate)
+                .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
+                .compact();
     }
 
     private String verifyTokenFormat(HttpServletRequest request) {

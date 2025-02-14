@@ -42,12 +42,13 @@ class JwtTokenServiceTest {
 
         Date expirationDate = claims.getExpiration();
         String resolvedUserId = claims.getSubject();
+        String tokenType = claims.get("type", String.class);
 
         assertThat(token).startsWith("eyJhbGciOiJIUzUxMiJ9.");
         assertThat(token.split("\\.").length == 3).isTrue();
         assertThat(expirationDate.after(new Date())).isTrue();
         assertThat(resolvedUserId).isEqualTo(userId);
-
+        assertThat(tokenType).isEqualTo("access");
     }
 
     @Test
@@ -130,5 +131,32 @@ class JwtTokenServiceTest {
         // Assert
         assertThat(resolvedUserId).isNull();
     }
+
+    @Test
+    void shouldGenerateEmailConfirmationToken() {
+        // Arrange
+        String userId = "userId";
+
+        // Act
+        String token = jwtTokenService.generateEmailConfirmationToken(userId);
+
+        // Assert
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(JwtTokenService.SECRET_KEY)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        Date expirationDate = claims.getExpiration();
+        String resolvedUserId = claims.getSubject();
+        String tokenType = claims.get("type", String.class);
+
+        assertThat(token).startsWith("eyJhbGciOiJIUzUxMiJ9.");
+        assertThat(token.split("\\.").length == 3).isTrue();
+        assertThat(expirationDate.after(new Date())).isTrue();
+        assertThat(resolvedUserId).isEqualTo(userId);
+        assertThat(tokenType).isEqualTo("email_confirmation");
+    }
+
 
 }
