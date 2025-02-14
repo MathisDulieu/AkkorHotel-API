@@ -25,7 +25,7 @@ class UserTest {
     }
 
     @Test
-    void shouldOverrideDefaultValuesWhenSpecified() {
+    void shouldOverrideUserDefaultValuesWhenSpecified() {
         // Arrange
         User user = User.builder()
                 .id("id")
