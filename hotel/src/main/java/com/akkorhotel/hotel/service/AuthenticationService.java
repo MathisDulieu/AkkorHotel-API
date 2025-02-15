@@ -2,6 +2,7 @@ package com.akkorhotel.hotel.service;
 
 import com.akkorhotel.hotel.dao.UserDao;
 import com.akkorhotel.hotel.model.User;
+import com.akkorhotel.hotel.model.request.LoginRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,7 @@ import org.springframework.mail.MailException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import static java.util.Objects.isNull;
@@ -49,8 +51,24 @@ public class AuthenticationService {
         return ResponseEntity.ok().build();
     }
 
-    public ResponseEntity<String> login() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<String> login(LoginRequest loginRequest) {
+        Optional<User> optionalUser = userDao.findByEmail(loginRequest.getEmail());
+
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+
+        User user = optionalUser.get();
+
+        if(!user.getIsValidEmail()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email is not verified");
+        }
+
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid password");
+        }
+
+        return ResponseEntity.ok(jwtTokenService.generateToken(user.getId()));
     }
 
     public ResponseEntity<String> confirmEmail() {

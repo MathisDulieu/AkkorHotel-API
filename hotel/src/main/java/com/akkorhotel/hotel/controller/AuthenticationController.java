@@ -2,6 +2,7 @@ package com.akkorhotel.hotel.controller;
 
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.CreateUserRequest;
+import com.akkorhotel.hotel.model.request.LoginRequest;
 import com.akkorhotel.hotel.service.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -158,5 +159,140 @@ public class AuthenticationController {
 
         return authenticationService.register(userToSave);
     }
+
+    @PostMapping("/login")
+    @Operation(
+            tags = {"Authentication"},
+            summary = "User login",
+            description = """
+        Authenticates a user using their email and password.
+        Returns an access token upon successful login.
+    """
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Successful authentication, access token returned",
+                    content = @Content(
+                            mediaType = "text/plain",
+                            examples = @ExampleObject(
+                                    name = "Access Token Example",
+                                    value = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid credentials or bad request (e.g., incorrect password or email)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Invalid Login Example",
+                                    value = """
+                    {
+                        "status": 400,
+                        "error": "Bad Request",
+                        "message": "Invalid email or password"
+                    }
+                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "User Not Found Example",
+                                    value = """
+                    {
+                        "status": 404,
+                        "error": "Not Found",
+                        "message": "User not found"
+                    }
+                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Email not validated yet (account not active)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Email Not Validated Example",
+                                    value = """
+                    {
+                        "status": 409,
+                        "error": "Conflict",
+                        "message": "User's email is not validated yet"
+                    }
+                """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<String> login(
+            @RequestBody(
+                    description = """
+            User credentials for login.
+            - **email**: The email of the user.
+            - **password**: The user's password.
+        """,
+                    content = @Content(
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Alice Login Example",
+                                            value = """
+                        {
+                            "email": "alice@example.com",
+                            "password": "AliceStrongP@ss1!"
+                        }
+                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Bob Login Example",
+                                            value = """
+                        {
+                            "email": "bob78@example.com",
+                            "password": "BobbySecure2$"
+                        }
+                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Charlie Login Example",
+                                            value = """
+                        {
+                            "email": "charlie@example.org",
+                            "password": "ChazP@ssw0rd3!"
+                        }
+                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Diana Login Example",
+                                            value = """
+                        {
+                            "email": "diana.user@example.com",
+                            "password": "DIAStrong5@ss"
+                        }
+                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Eve Login Example",
+                                            value = """
+                        {
+                            "email": "eve@example.net",
+                            "password": "EveStrong5@ss"
+                        }
+                    """
+                                    )
+                            }
+                    )
+            )
+            @org.springframework.web.bind.annotation.RequestBody LoginRequest loginRequest) {
+        return authenticationService.login(loginRequest);
+    }
+
 
 }

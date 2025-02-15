@@ -11,6 +11,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
@@ -151,6 +152,42 @@ class UserDaoTest {
 
         // Assert
         assertThat(exists).isFalse();
+    }
+
+    @Test
+    void shouldReturnUser_whenEmailExistsInDatabase() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "user-id",
+            "username": "username",
+            "password": "password",
+            "email": "test@example.com",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        // Act
+        Optional<User> userOptional = userDao.findByEmail("test@example.com");
+
+        // Assert
+        assertThat(userOptional).isPresent();
+        assertThat(userOptional.get().getId()).isEqualTo("user-id");
+        assertThat(userOptional.get().getUsername()).isEqualTo("username");
+        assertThat(userOptional.get().getPassword()).isEqualTo("password");
+        assertThat(userOptional.get().getEmail()).isEqualTo("test@example.com");
+        assertThat(userOptional.get().getIsValidEmail()).isEqualTo(true);
+        assertThat(userOptional.get().getRole()).isEqualTo(UserRole.USER);
+    }
+
+    @Test
+    void shouldReturnEmptyOptional_whenEmailDoesNotExistInDatabase() {
+        // Act
+        Optional<User> userOptional = userDao.findByEmail("nonexistent@example.com");
+
+        // Assert
+        assertThat(userOptional).isEmpty();
     }
 
 

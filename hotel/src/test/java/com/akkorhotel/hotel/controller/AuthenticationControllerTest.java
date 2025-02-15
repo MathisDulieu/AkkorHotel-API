@@ -3,6 +3,7 @@ package com.akkorhotel.hotel.controller;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.request.CreateUserRequest;
+import com.akkorhotel.hotel.model.request.LoginRequest;
 import com.akkorhotel.hotel.service.AuthenticationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,6 +70,32 @@ class AuthenticationControllerTest {
         assertThat(capturedUser.getPassword()).isEqualTo("TestPassword");
         assertThat(capturedUser.getRole()).isEqualTo(UserRole.USER);
         assertThat(capturedUser.getId()).isNull();
+    }
+
+    @Test
+    void shouldLoginUser() throws Exception {
+        // Arrange
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("userEmail");
+        loginRequest.setPassword("userPassword");
+
+        ArgumentCaptor<LoginRequest> userCaptor = ArgumentCaptor.forClass(LoginRequest.class);
+
+        when(authenticationService.login(any(LoginRequest.class))).thenReturn(ResponseEntity.ok("jwtToken"));
+
+        // Act
+        mockMvc.perform(post("/auth/login")
+                        .content(new ObjectMapper().writeValueAsString(loginRequest))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string("jwtToken"));
+
+        // Assert
+        verify(authenticationService).login(userCaptor.capture());
+
+        LoginRequest capturedLoginRequest = userCaptor.getValue();
+        assertThat(capturedLoginRequest.getEmail()).isEqualTo("userEmail");
+        assertThat(capturedLoginRequest.getPassword()).isEqualTo("userPassword");
     }
 
 }

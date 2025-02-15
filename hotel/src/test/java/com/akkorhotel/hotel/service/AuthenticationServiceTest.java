@@ -2,6 +2,7 @@ package com.akkorhotel.hotel.service;
 
 import com.akkorhotel.hotel.dao.UserDao;
 import com.akkorhotel.hotel.model.User;
+import com.akkorhotel.hotel.model.request.LoginRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -12,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.MailException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -285,6 +288,113 @@ class AuthenticationServiceTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody()).isEqualTo("Failed to send the registration confirmation email. Please try again later.");
+    }
+
+    @Test
+    void shouldLoginUserAndReturnOkWithToken() {
+        // Arrange
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("userEmail");
+        loginRequest.setPassword("userPassword");
+
+        when(userDao.findByEmail(anyString())).thenReturn(Optional.of(User.builder()
+                        .id("userId")
+                        .email("userEmail")
+                        .password("encodedUserPassword")
+                        .isValidEmail(true)
+                .build()));
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
+        when(jwtTokenService.generateToken(anyString())).thenReturn("anyToken");
+
+        // Act
+        ResponseEntity<String> response = authenticationService.login(loginRequest);
+
+        // Assert
+        InOrder inOrder = inOrder(userDao, passwordEncoder, jwtTokenService);
+        inOrder.verify(userDao).findByEmail("userEmail");
+        inOrder.verify(passwordEncoder).matches("userPassword", "encodedUserPassword");
+        inOrder.verify(jwtTokenService).generateToken("userId");
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void shouldReturnNotFound_whenUserIsNotFoundInDatabase() {
+        // Arrange
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("userEmail");
+        loginRequest.setPassword("userPassword");
+
+        when(userDao.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<String> response = authenticationService.login(loginRequest);
+
+        // Assert
+        verify(userDao).findByEmail("userEmail");
+
+        verifyNoMoreInteractions(userDao);
+        verifyNoInteractions(passwordEncoder, jwtTokenService);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo("User not found");
+    }
+
+    @Test
+    void shouldReturnConflit_whenUserEmailIsNotValidateYet() {
+        // Arrange
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("userEmail");
+        loginRequest.setPassword("userPassword");
+
+        when(userDao.findByEmail(anyString())).thenReturn(Optional.of(User.builder()
+                .email("userEmail")
+                .isValidEmail(false)
+                .build()));
+
+        // Act
+        ResponseEntity<String> response = authenticationService.login(loginRequest);
+
+        // Assert
+        verify(userDao).findByEmail("userEmail");
+
+        verifyNoMoreInteractions(userDao);
+        verifyNoInteractions(passwordEncoder, jwtTokenService);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isEqualTo("Email is not verified");
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenPasswordIsIncorrect() {
+        // Arrange
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("userEmail");
+        loginRequest.setPassword("incorrectPassword");
+
+        when(userDao.findByEmail(anyString())).thenReturn(Optional.of(User.builder()
+                .email("userEmail")
+                .isValidEmail(true)
+                .password("encodedUserPassword")
+                .build()));
+
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+
+        // Act
+        ResponseEntity<String> response = authenticationService.login(loginRequest);
+
+        // Assert
+        InOrder inOrder = inOrder(userDao, passwordEncoder);
+        inOrder.verify(userDao).findByEmail("userEmail");
+        inOrder.verify(passwordEncoder).matches("incorrectPassword", "encodedUserPassword");
+        inOrder.verifyNoMoreInteractions();
+
+        verifyNoMoreInteractions(userDao, passwordEncoder);
+        verifyNoInteractions(jwtTokenService);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo("Invalid password");
     }
 
 }

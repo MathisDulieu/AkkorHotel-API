@@ -3,6 +3,9 @@ package com.akkorhotel.hotel;
 import com.akkorhotel.hotel.service.EmailService;
 import com.akkorhotel.hotel.service.UuidProvider;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,9 +21,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.Duration;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import static com.akkorhotel.hotel.service.JwtTokenService.SECRET_KEY;
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -122,6 +127,56 @@ public class AuthenticationIntegrationTests {
                 ));
 
         verify(emailService, times(1)).sendEmail(eq("alice@example.com"), anyString(), anyString());
+    }
+
+    @Test
+    void shouldLoginUser() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+                    "username": "username",
+                    "password": "encodedPassword",
+                    "email": "alice@example.com",
+                    "isValidEmail": true,
+                    "role": "USER"
+                }
+                """, "USERS");
+
+        String body = """
+                {
+                    "email": "alice@example.com",
+                    "password": "AliceStrongP@ss1!"
+                }
+                """;
+
+        when(passwordEncoder.matches("AliceStrongP@ss1!", "encodedPassword")).thenReturn(true);
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(post("/auth/login")
+                .content(body)
+                .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk());
+                });
+
+        String jsonResponse = resultActions.andReturn().getResponse().getContentAsString();
+        assertThat(jsonResponse).isNotBlank();
+
+        Jws<Claims> parsedToken = Jwts.parserBuilder()
+                .setSigningKey(SECRET_KEY)
+                .build()
+                .parseClaimsJws(jsonResponse);
+
+        Claims claims = parsedToken.getBody();
+        assertThat(claims.getSubject()).isEqualTo("f2cccd2f-5711-4356-a13a-f687dc983ce1");
+        assertThat(claims.get("type", String.class)).isEqualTo("access");
+        assertThat(claims.getExpiration()).isAfter(new Date());
     }
 
 }

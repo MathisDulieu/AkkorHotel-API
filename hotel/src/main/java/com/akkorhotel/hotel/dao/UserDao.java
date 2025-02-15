@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
@@ -43,6 +45,10 @@ public class UserDao {
                 Criteria.where("username").is(username),
                 Criteria.where("email").is(email)
         )), USER_COLLECTION);
+    }
+
+    public Optional<User> findByEmail(String email) {
+        return Optional.ofNullable(mongoTemplate.findOne(new Query(Criteria.where("email").is(email)), User.class, USER_COLLECTION));
     }
 
 }
