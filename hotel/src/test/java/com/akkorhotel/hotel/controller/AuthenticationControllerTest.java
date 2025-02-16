@@ -98,4 +98,27 @@ class AuthenticationControllerTest {
         assertThat(capturedLoginRequest.getPassword()).isEqualTo("userPassword");
     }
 
+    @Test
+    void shouldConfirmUserEmail() throws Exception {
+        // Arrange
+        String token = "token";
+
+        ArgumentCaptor<String> userCaptor = ArgumentCaptor.forClass(String.class);
+
+        when(authenticationService.confirmEmail(any(String.class))).thenReturn(ResponseEntity.ok("Email successfully validated"));
+
+        // Act
+        mockMvc.perform(post("/auth/confirm-email")
+                        .content(token)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Email successfully validated"));
+
+        // Assert
+        verify(authenticationService).confirmEmail(userCaptor.capture());
+
+        String capturedLoginRequest = userCaptor.getValue();
+        assertThat(capturedLoginRequest).isEqualTo("token");
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.akkorhotel.hotel.service;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -12,6 +13,7 @@ import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
 
+import static java.util.Objects.isNull;
 import static org.springframework.util.StringUtils.hasText;
 
 @Component
@@ -52,6 +54,44 @@ public class JwtTokenService {
                 .compact();
     }
 
+    public String resolveUserIdFromToken(String token) {
+        return Jwts.parserBuilder().setSigningKey(SECRET_KEY).build().parseClaimsJws(token).getBody().getSubject();
+    }
+
+    public boolean isEmailTokenValid(String token) {
+        Claims claims = parseTokenClaims(token);
+        if (isNull(claims)) {
+            return false;
+        }
+
+        if (!isEmailConfirmationToken(claims)) {
+            return false;
+        }
+
+        return isTokenNotExpired(claims);
+    }
+
+    private Claims parseTokenClaims(String token) {
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(SECRET_KEY)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private boolean isEmailConfirmationToken(Claims claims) {
+        return "email_confirmation".equals(claims.get("type"));
+    }
+
+    private boolean isTokenNotExpired(Claims claims) {
+        Date expirationDate = claims.getExpiration();
+        return expirationDate != null && expirationDate.after(new Date());
+    }
+
     private String verifyTokenFormat(HttpServletRequest request) {
         String bearerToken = request.getHeader(HttpHeaders.AUTHORIZATION);
 
@@ -71,10 +111,6 @@ public class JwtTokenService {
         } catch (Exception exception) {
             return false;
         }
-    }
-
-    private String resolveUserIdFromToken(String token) {
-        return Jwts.parserBuilder().setSigningKey(SECRET_KEY).build().parseClaimsJws(token).getBody().getSubject();
     }
 
 }

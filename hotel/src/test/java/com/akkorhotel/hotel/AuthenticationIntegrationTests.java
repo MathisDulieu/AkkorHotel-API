@@ -1,11 +1,13 @@
 package com.akkorhotel.hotel;
 
 import com.akkorhotel.hotel.service.EmailService;
+import com.akkorhotel.hotel.service.JwtTokenService;
 import com.akkorhotel.hotel.service.UuidProvider;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -177,6 +180,56 @@ public class AuthenticationIntegrationTests {
         assertThat(claims.getSubject()).isEqualTo("f2cccd2f-5711-4356-a13a-f687dc983ce1");
         assertThat(claims.get("type", String.class)).isEqualTo("access");
         assertThat(claims.getExpiration()).isAfter(new Date());
+    }
+
+    @Test
+    void shouldConfirmUserEmail() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+                    "username": "username",
+                    "password": "encodedPassword",
+                    "email": "alice@example.com",
+                    "isValidEmail": false,
+                    "role": "USER"
+                }
+                """, "USERS");
+
+        String token = Jwts.builder()
+                .setSubject("f2cccd2f-5711-4356-a13a-f687dc983ce1")
+                .claim("type", "email_confirmation")
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
+                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
+                .compact();
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(post("/auth/confirm-email")
+                .content(token)
+                .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk());
+                });
+
+        List<Map> savedUsers = mongoTemplate.findAll(Map.class, "USERS");
+
+        assertThat(savedUsers).hasSize(1);
+
+        assertThat((Map<String, Object>) savedUsers.getFirst())
+                .containsAllEntriesOf(ofEntries(
+                        entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce1"),
+                        entry("username", "username"),
+                        entry("email", "alice@example.com"),
+                        entry("password", "encodedPassword"),
+                        entry("isValidEmail", true),
+                        entry("role", "USER")
+                ));
     }
 
 }

@@ -397,4 +397,98 @@ class AuthenticationServiceTest {
         assertThat(response.getBody()).isEqualTo("Invalid password");
     }
 
+    @Test
+    void shouldConfirmUserEmail() {
+        // Arrange
+        when(jwtTokenService.isEmailTokenValid(anyString())).thenReturn(true);
+        when(jwtTokenService.resolveUserIdFromToken(anyString())).thenReturn("userId");
+        when(userDao.findById(anyString())).thenReturn(Optional.of(User.builder()
+                .id("userId")
+                .email("userEmail")
+                .isValidEmail(false)
+                .build()));
+
+        // Act
+        ResponseEntity<String> response = authenticationService.confirmEmail("emailToken");
+
+        // Assert
+        InOrder inOrder = inOrder(jwtTokenService, userDao);
+        inOrder.verify(jwtTokenService).isEmailTokenValid("emailToken");
+        inOrder.verify(jwtTokenService).resolveUserIdFromToken("emailToken");
+        inOrder.verify(userDao).findById("userId");
+        inOrder.verify(userDao).save(eq(User.builder().id("userId").email("userEmail").isValidEmail(true).build()));
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo("Email successfully validated");
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenEmailTokenIsNotValid() {
+        // Arrange
+        when(jwtTokenService.isEmailTokenValid(anyString())).thenReturn(false);
+
+        // Act
+        ResponseEntity<String> response = authenticationService.confirmEmail("emailToken");
+
+        // Assert
+        verify(jwtTokenService).isEmailTokenValid("emailToken");
+
+        verifyNoMoreInteractions(jwtTokenService);
+        verifyNoInteractions(userDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo("Invalid or expired token");
+    }
+
+    @Test
+    void shouldReturnNotFound_whenUserIsNotFound() {
+        // Arrange
+        when(jwtTokenService.isEmailTokenValid(anyString())).thenReturn(true);
+        when(jwtTokenService.resolveUserIdFromToken(anyString())).thenReturn("nonExistentUserId");
+        when(userDao.findById(anyString())).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<String> response = authenticationService.confirmEmail("emailToken");
+
+        // Assert
+        InOrder inOrder = inOrder(jwtTokenService, userDao);
+        inOrder.verify(jwtTokenService).isEmailTokenValid("emailToken");
+        inOrder.verify(jwtTokenService).resolveUserIdFromToken("emailToken");
+        inOrder.verify(userDao).findById("nonExistentUserId");
+        inOrder.verifyNoMoreInteractions();
+
+        verifyNoMoreInteractions(jwtTokenService, userDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo("User not found");
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenUserEmailIsAlreadyValidated() {
+        // Arrange
+        when(jwtTokenService.isEmailTokenValid(anyString())).thenReturn(true);
+        when(jwtTokenService.resolveUserIdFromToken(anyString())).thenReturn("userId");
+        when(userDao.findById(anyString())).thenReturn(Optional.of(User.builder()
+                .id("userId")
+                .email("userEmail")
+                .isValidEmail(true)
+                .build()));
+
+        // Act
+        ResponseEntity<String> response = authenticationService.confirmEmail("emailToken");
+
+        // Assert
+        InOrder inOrder = inOrder(jwtTokenService, userDao);
+        inOrder.verify(jwtTokenService).isEmailTokenValid("emailToken");
+        inOrder.verify(jwtTokenService).resolveUserIdFromToken("emailToken");
+        inOrder.verify(userDao).findById("userId");
+        inOrder.verifyNoMoreInteractions();
+
+        verifyNoMoreInteractions(jwtTokenService, userDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo("Email already validated");
+    }
+
 }

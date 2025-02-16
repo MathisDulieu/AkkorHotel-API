@@ -190,5 +190,41 @@ class UserDaoTest {
         assertThat(userOptional).isEmpty();
     }
 
+    @Test
+    void shouldReturnUser_whenIdExistsInDatabase() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "userId",
+            "username": "username",
+            "password": "password",
+            "email": "test@example.com",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        // Act
+        Optional<User> userOptional = userDao.findById("userId");
+
+        // Assert
+        assertThat(userOptional).isPresent();
+        assertThat(userOptional.get().getId()).isEqualTo("userId");
+        assertThat(userOptional.get().getUsername()).isEqualTo("username");
+        assertThat(userOptional.get().getPassword()).isEqualTo("password");
+        assertThat(userOptional.get().getEmail()).isEqualTo("test@example.com");
+        assertThat(userOptional.get().getIsValidEmail()).isEqualTo(true);
+        assertThat(userOptional.get().getRole()).isEqualTo(UserRole.USER);
+    }
+
+    @Test
+    void shouldReturnEmptyOptional_whenIdDoesNotExistInDatabase() {
+        // Act
+        Optional<User> userOptional = userDao.findById("nonexistent_userId");
+
+        // Assert
+        assertThat(userOptional).isEmpty();
+    }
+
 
 }

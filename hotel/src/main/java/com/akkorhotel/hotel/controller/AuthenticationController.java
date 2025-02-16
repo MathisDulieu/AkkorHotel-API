@@ -294,5 +294,83 @@ public class AuthenticationController {
         return authenticationService.login(loginRequest);
     }
 
+    @PostMapping("/confirm-email")
+    @Operation(
+            tags = {"Authentication"},
+            summary = "Confirm user email",
+            description = "Confirms the user's email address using the provided token."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Email successfully validated",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Email Confirmation Success Example",
+                                    value = """
+                    {
+                        "status": 200,
+                        "message": "Email successfully validated"
+                    }
+                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid or expired token",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Invalid Token Example",
+                                    value = """
+                    {
+                        "status": 400,
+                        "error": "Bad Request",
+                        "message": "Invalid or expired token"
+                    }
+                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "User Not Found Example",
+                                    value = """
+                    {
+                        "status": 404,
+                        "error": "Not Found",
+                        "message": "User not found"
+                    }
+                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Email already validated",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Email Already Validated Example",
+                                    value = """
+                    {
+                        "status": 409,
+                        "error": "Conflict",
+                        "message": "Email already validated"
+                    }
+                """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<String> confirmEmail(@org.springframework.web.bind.annotation.RequestBody String token) {
+        return authenticationService.confirmEmail(token);
+    }
 
 }

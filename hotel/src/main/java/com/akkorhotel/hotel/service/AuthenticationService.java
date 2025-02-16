@@ -71,8 +71,27 @@ public class AuthenticationService {
         return ResponseEntity.ok(jwtTokenService.generateToken(user.getId()));
     }
 
-    public ResponseEntity<String> confirmEmail() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<String> confirmEmail(String token) {
+        boolean isTokenValid = jwtTokenService.isEmailTokenValid(token);
+        if (!isTokenValid) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired token");
+        }
+
+        String userId = jwtTokenService.resolveUserIdFromToken(token);
+        Optional<User> optionalUser = userDao.findById(userId);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+
+        User user = optionalUser.get();
+        if (user.getIsValidEmail()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email already validated");
+        }
+
+        user.setIsValidEmail(true);
+        userDao.save(user);
+
+        return ResponseEntity.ok().body("Email successfully validated");
     }
 
     public ResponseEntity<String> resendConfirmationEmail() {

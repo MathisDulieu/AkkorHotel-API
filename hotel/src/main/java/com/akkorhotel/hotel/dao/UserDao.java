@@ -51,4 +51,8 @@ public class UserDao {
         return Optional.ofNullable(mongoTemplate.findOne(new Query(Criteria.where("email").is(email)), User.class, USER_COLLECTION));
     }
 
+    public Optional<User> findById(String userId) {
+        return Optional.ofNullable(mongoTemplate.findById(userId, User.class, USER_COLLECTION));
+    }
+
 }

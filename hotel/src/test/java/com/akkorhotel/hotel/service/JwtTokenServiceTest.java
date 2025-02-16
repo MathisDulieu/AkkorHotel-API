@@ -158,5 +158,82 @@ class JwtTokenServiceTest {
         assertThat(tokenType).isEqualTo("email_confirmation");
     }
 
+    @Test
+    void shouldReturnTrue_whenTokenEmailIsValid() {
+        // Arrange
+        String userId = "userId";
+        String validToken = Jwts.builder()
+                .setSubject(userId)
+                .claim("type", "email_confirmation")
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
+                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
+                .compact();
+
+        // Act
+        boolean isValidToken = jwtTokenService.isEmailTokenValid(validToken);
+
+        // Assert
+        assertThat(isValidToken).isTrue();
+    }
+
+    @Test
+    void shouldReturnFalse_whenTokenIsNotEmailConfirmation() {
+        // Arrange
+        String userId = "userId";
+        String invalidToken = Jwts.builder()
+                .setSubject(userId)
+                .claim("type", "wrongType")
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
+                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
+                .compact();
+
+        // Act
+        boolean isValid = jwtTokenService.isEmailTokenValid(invalidToken);
+
+        // Assert
+        assertThat(isValid).isFalse();
+    }
+
+    @Test
+    void shouldReturnFalse_whenTokenIsExpired() {
+        // Arrange
+        String userId = "userId";
+        String expiredToken = Jwts.builder()
+                .setSubject(userId)
+                .claim("type", "email_confirmation")
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().minusSeconds(172_800_000)))
+                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
+                .compact();
+
+        // Act
+        boolean isValid = jwtTokenService.isEmailTokenValid(expiredToken);
+
+        // Assert
+        assertThat(isValid).isFalse();
+    }
+
+    @Test
+    void shouldResolveUserIdFromToken() {
+        // Arrange
+        String userId = "userId";
+
+        String token = Jwts.builder()
+                .setSubject(userId)
+                .claim("type", "access")
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
+                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
+                .compact();
+
+        // Act
+        String resolvedUserId = jwtTokenService.resolveUserIdFromToken(token);
+
+        // Assert
+        assertThat(resolvedUserId).isEqualTo(userId);
+    }
+
 
 }
