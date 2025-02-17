@@ -1,6 +1,6 @@
 FROM eclipse-temurin:21-jdk as build
 
-COPY akkorhotel /AkkorHotel
+COPY hotel /AkkorHotel
 
 WORKDIR /AkkorHotel
 

@@ -5,19 +5,23 @@ import org.springframework.stereotype.Service;
 @Service
 public class FileStorageService {
 
-    public void storeImage() {
+    public void storeImage(String imageId, String path) {
 
     }
 
-    public void getImage() {
+    public void getImage(String imageId, String path) {
 
     }
 
-    public void deleteImage() {
+    public void deleteImage(String imageId, String path) {
 
     }
 
-    public void updateImageName() {
+    public void updateImageName(String imageId, String path, String newImageName) {
+
+    }
+
+    public void createFolder(String folderName, String path) {
 
     }
 

@@ -10,23 +10,21 @@ import org.springframework.stereotype.Service;
 
 import java.io.UnsupportedEncodingException;
 
+import static com.akkorhotel.hotel.configuration.EnvConfiguration.getAppEmail;
+import static com.akkorhotel.hotel.configuration.EnvConfiguration.getMailModifiedUsername;
+
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    private JavaMailSender javaMailSender;
-
-//    private static final String APP_EMAIL = System.getenv("APP_EMAIL");
-    private static final String APP_EMAIL = "akkorhotel@gmail.com";
-//    private static final String MAIL_MODIFIED_USERNAME = System.getenv("MAIL_MODIFIED_USERNAME");
-    private static final String MAIL_MODIFIED_USERNAME = "AkkorHotel";
+    private final JavaMailSender javaMailSender;
 
     public void sendEmail(String to, String subject, String body) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "utf-8");
 
-            helper.setFrom(APP_EMAIL, MAIL_MODIFIED_USERNAME);
+            helper.setFrom(getAppEmail(), getMailModifiedUsername());
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body + getEmailSignature(), true);

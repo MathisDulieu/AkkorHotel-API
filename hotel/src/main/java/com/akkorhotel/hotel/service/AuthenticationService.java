@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
+import static com.akkorhotel.hotel.configuration.EnvConfiguration.getMailRegisterConfirmationLink;
+import static com.akkorhotel.hotel.configuration.EnvConfiguration.getMailRegisterSubject;
 import static java.util.Objects.isNull;
 
 @Service
@@ -24,11 +26,6 @@ public class AuthenticationService {
     private final JwtTokenService jwtTokenService;
     private final EmailService emailService;
     private final BCryptPasswordEncoder passwordEncoder;
-
-//    private static final String MAIL_REGISTER_SUBJECT = System.getenv("MAIL_REGISTER_SUBJECT");
-    private static final String MAIL_REGISTER_SUBJECT = "Confirmez votre inscription à Akkor Hotel";
-//    private static final String MAIL_REGISTER_CONFIRMATION_LINK = System.getenv("MAIL_REGISTER_CONFIRMATION_LINK");
-    private static final String MAIL_REGISTER_CONFIRMATION_LINK = "https://www.akkorhotel.com/valider-l-email/";
 
     private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
     private static final String PASSWORD_REGEX = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-={}';:\",.<>?|`~])[A-Za-z\\d!@#$%^&*()_+\\-={}';:\",.<>?|`~]{8,}$";
@@ -148,7 +145,7 @@ public class AuthenticationService {
         String body = getRegisterConfirmationEmailBody(emailConfirmationToken, user.getUsername());
 
         try {
-            emailService.sendEmail(user.getEmail(), MAIL_REGISTER_SUBJECT, body);
+            emailService.sendEmail(user.getEmail(), getMailRegisterSubject(), body);
         } catch (MailException e) {
             return "Failed to send the registration confirmation email. Please try again later.";
         }
@@ -157,7 +154,7 @@ public class AuthenticationService {
     }
 
     private static String getRegisterConfirmationEmailBody(String emailConfirmationToken, String username) {
-        String confirmationLink = MAIL_REGISTER_CONFIRMATION_LINK + emailConfirmationToken;
+        String confirmationLink = getMailRegisterConfirmationLink() + emailConfirmationToken;
 
         return "<html>"
                 + "<body>"

@@ -4,16 +4,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import static com.akkorhotel.hotel.configuration.EnvConfiguration.getAllowedOrigins;
+
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
-
-//    private static final String ALLOWED_ORIGINS = System.getenv("ALLOWED_ORIGINS");
-    private static final String ALLOWED_ORIGINS = "*";
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins(ALLOWED_ORIGINS)
+                .allowedOrigins(getAllowedOrigins())
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*");
     }
