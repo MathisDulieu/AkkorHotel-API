@@ -373,4 +373,96 @@ public class AuthenticationController {
         return authenticationService.confirmEmail(token);
     }
 
+    @PostMapping("/resend-confirmation-email")
+    @Operation(
+            tags = {"Authentication"},
+            summary = "Resend confirmation email",
+            description = "Allows a user to request a new confirmation email if their account email is not yet validated."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Confirmation email sent successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Success Example",
+                                    value = """
+                                {
+                                    "status": 200,
+                                    "message": "Confirmation email sent successfully."
+                                }
+                                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Email already validated or bad request",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Bad Request Example",
+                                    value = """
+                                {
+                                    "status": 400,
+                                    "error": "Bad Request",
+                                    "message": "Email already validated."
+                                }
+                                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "User Not Found Example",
+                                    value = """
+                                {
+                                    "status": 404,
+                                    "error": "Not Found",
+                                    "message": "User not found."
+                                }
+                                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Failed to send confirmation email",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Email Sending Error Example",
+                                    value = """
+                                {
+                                    "status": 500,
+                                    "error": "Internal Server Error",
+                                    "message": "Failed to send confirmation email. Please try again later."
+                                }
+                                """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<String> resendConfirmationEmail(
+            @RequestBody(
+                    description = "Request body containing the email of the user.",
+                    content = @Content(
+                            examples = @ExampleObject(
+                                    name = "Resend Email Request Example",
+                                    value = """
+                                {
+                                    "email": "user@example.com"
+                                }
+                                """
+                            )
+                    )
+            ) @org.springframework.web.bind.annotation.RequestBody String email) {
+        return authenticationService.resendConfirmationEmail(email);
+    }
+
 }

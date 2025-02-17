@@ -442,7 +442,7 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    void shouldReturnNotFound_whenUserIsNotFound() {
+    void shouldReturnNotFound_whenEmailConfirmationTokenBelongsToNonExistentUser() {
         // Arrange
         when(jwtTokenService.isEmailTokenValid(anyString())).thenReturn(true);
         when(jwtTokenService.resolveUserIdFromToken(anyString())).thenReturn("nonExistentUserId");
@@ -457,8 +457,6 @@ class AuthenticationServiceTest {
         inOrder.verify(jwtTokenService).resolveUserIdFromToken("emailToken");
         inOrder.verify(userDao).findById("nonExistentUserId");
         inOrder.verifyNoMoreInteractions();
-
-        verifyNoMoreInteractions(jwtTokenService, userDao);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isEqualTo("User not found");
@@ -485,10 +483,97 @@ class AuthenticationServiceTest {
         inOrder.verify(userDao).findById("userId");
         inOrder.verifyNoMoreInteractions();
 
-        verifyNoMoreInteractions(jwtTokenService, userDao);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo("Email already validated");
+    }
+
+    @Test
+    void shouldSendRegisterConfirmationEmail() {
+        // Arrange
+        when(userDao.findByEmail(anyString())).thenReturn(Optional.of(User.builder()
+                .id("userId")
+                .email("userEmail")
+                .isValidEmail(false)
+                .build()));
+        when(jwtTokenService.generateEmailConfirmationToken(anyString())).thenReturn("anyToken");
+
+        // Act
+        ResponseEntity<String> response = authenticationService.resendConfirmationEmail("userEmail");
+
+        // Assert
+        InOrder inOrder = inOrder(userDao, jwtTokenService, emailService);
+        inOrder.verify(userDao).findByEmail("userEmail");
+        inOrder.verify(jwtTokenService).generateEmailConfirmationToken("userId");
+        inOrder.verify(emailService, times(1)).sendEmail(eq("userEmail"), any(), any());
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo("Confirmation email successfully sent");
+    }
+
+    @Test
+    void shouldReturnNotFound_whenEmailBelongsToNonExistentUser() {
+        // Arrange
+        when(userDao.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<String> response = authenticationService.resendConfirmationEmail("userEmail");
+
+        // Assert
+        verify(userDao).findByEmail("userEmail");
+
+        verifyNoMoreInteractions(userDao);
+        verifyNoInteractions(jwtTokenService);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo("User not found");
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenEmailIsAlreadyValidated() {
+        // Arrange
+        when(userDao.findByEmail(anyString())).thenReturn(Optional.of(User.builder()
+                .id("userId")
+                .email("userEmail")
+                .isValidEmail(true)
+                .build()));
+
+        // Act
+        ResponseEntity<String> response = authenticationService.resendConfirmationEmail("userEmail");
+
+        // Assert
+        verify(userDao).findByEmail("userEmail");
+
+        verifyNoMoreInteractions(userDao);
+        verifyNoInteractions(jwtTokenService);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo("Email already validated");
+    }
+
+    @Test
+    void shouldReturnInternalServerError_whenExceptionOccursDuringEmailSending() {
+        // Arrange
+        when(userDao.findByEmail(anyString())).thenReturn(Optional.of(User.builder()
+                .id("userId")
+                .email("userEmail")
+                .isValidEmail(false)
+                .build()));
+        when(jwtTokenService.generateEmailConfirmationToken(anyString())).thenReturn("anyToken");
+        doThrow(new MailException("Email error") {}).when(emailService).sendEmail(anyString(), anyString(), anyString());
+
+        // Act
+        ResponseEntity<String> response = authenticationService.resendConfirmationEmail("userEmail");
+
+        // Assert
+        InOrder inOrder = inOrder(userDao, jwtTokenService, emailService);
+        inOrder.verify(userDao).findByEmail("userEmail");
+        inOrder.verify(jwtTokenService).generateEmailConfirmationToken("userId");
+        inOrder.verify(emailService, times(1)).sendEmail(eq("userEmail"), any(), any());
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).isEqualTo("Failed to send the registration confirmation email. Please try again later.");
     }
 
 }

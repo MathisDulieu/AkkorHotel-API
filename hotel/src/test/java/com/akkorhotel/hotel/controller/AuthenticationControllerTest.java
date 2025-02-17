@@ -45,31 +45,31 @@ class AuthenticationControllerTest {
     @Test
     void shouldCreateNewUser() throws Exception {
         // Arrange
-        CreateUserRequest createUserRequest = new CreateUserRequest();
-        createUserRequest.setUsername("TestUsername");
-        createUserRequest.setEmail("TestEmail");
-        createUserRequest.setPassword("TestPassword");
+        CreateUserRequest registerRequest = new CreateUserRequest();
+        registerRequest.setUsername("TestUsername");
+        registerRequest.setEmail("TestEmail");
+        registerRequest.setPassword("TestPassword");
 
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
 
         when(authenticationService.register(any(User.class))).thenReturn(ResponseEntity.ok("User created successfully"));
 
         // Act
         mockMvc.perform(post("/auth/register")
-                        .content(new ObjectMapper().writeValueAsString(createUserRequest))
+                        .content(new ObjectMapper().writeValueAsString(registerRequest))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().string("User created successfully"));
 
         // Assert
-        verify(authenticationService).register(userCaptor.capture());
+        verify(authenticationService).register(captor.capture());
 
-        User capturedUser = userCaptor.getValue();
-        assertThat(capturedUser.getUsername()).isEqualTo("TestUsername");
-        assertThat(capturedUser.getEmail()).isEqualTo("TestEmail");
-        assertThat(capturedUser.getPassword()).isEqualTo("TestPassword");
-        assertThat(capturedUser.getRole()).isEqualTo(UserRole.USER);
-        assertThat(capturedUser.getId()).isNull();
+        User capturedRegisterRequest = captor.getValue();
+        assertThat(capturedRegisterRequest.getUsername()).isEqualTo("TestUsername");
+        assertThat(capturedRegisterRequest.getEmail()).isEqualTo("TestEmail");
+        assertThat(capturedRegisterRequest.getPassword()).isEqualTo("TestPassword");
+        assertThat(capturedRegisterRequest.getRole()).isEqualTo(UserRole.USER);
+        assertThat(capturedRegisterRequest.getId()).isNull();
     }
 
     @Test
@@ -79,7 +79,7 @@ class AuthenticationControllerTest {
         loginRequest.setEmail("userEmail");
         loginRequest.setPassword("userPassword");
 
-        ArgumentCaptor<LoginRequest> userCaptor = ArgumentCaptor.forClass(LoginRequest.class);
+        ArgumentCaptor<LoginRequest> captor = ArgumentCaptor.forClass(LoginRequest.class);
 
         when(authenticationService.login(any(LoginRequest.class))).thenReturn(ResponseEntity.ok("jwtToken"));
 
@@ -91,9 +91,9 @@ class AuthenticationControllerTest {
                 .andExpect(content().string("jwtToken"));
 
         // Assert
-        verify(authenticationService).login(userCaptor.capture());
+        verify(authenticationService).login(captor.capture());
 
-        LoginRequest capturedLoginRequest = userCaptor.getValue();
+        LoginRequest capturedLoginRequest = captor.getValue();
         assertThat(capturedLoginRequest.getEmail()).isEqualTo("userEmail");
         assertThat(capturedLoginRequest.getPassword()).isEqualTo("userPassword");
     }
@@ -103,7 +103,7 @@ class AuthenticationControllerTest {
         // Arrange
         String token = "token";
 
-        ArgumentCaptor<String> userCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
 
         when(authenticationService.confirmEmail(any(String.class))).thenReturn(ResponseEntity.ok("Email successfully validated"));
 
@@ -115,10 +115,33 @@ class AuthenticationControllerTest {
                 .andExpect(content().string("Email successfully validated"));
 
         // Assert
-        verify(authenticationService).confirmEmail(userCaptor.capture());
+        verify(authenticationService).confirmEmail(captor.capture());
 
-        String capturedLoginRequest = userCaptor.getValue();
-        assertThat(capturedLoginRequest).isEqualTo("token");
+        String capturedConfirmationUserEmailRequest = captor.getValue();
+        assertThat(capturedConfirmationUserEmailRequest).isEqualTo("token");
+    }
+
+    @Test
+    void shouldSendConfirmationEmail() throws Exception {
+        // Arrange
+        String email = "email";
+
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+
+        when(authenticationService.resendConfirmationEmail(any(String.class))).thenReturn(ResponseEntity.ok("Confirmation email successfully sent"));
+
+        // Act
+        mockMvc.perform(post("/auth/resend-confirmation-email")
+                        .content(email)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Confirmation email successfully sent"));
+
+        // Assert
+        verify(authenticationService).resendConfirmationEmail(captor.capture());
+
+        String capturedConfirmationEmailRequest = captor.getValue();
+        assertThat(capturedConfirmationEmailRequest).isEqualTo("email");
     }
 
 }

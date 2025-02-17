@@ -61,6 +61,7 @@ public class AuthenticationIntegrationTests {
     @MockBean
     private BCryptPasswordEncoder passwordEncoder;
 
+
     @AfterEach
     void clean() {
         mongoTemplate.dropCollection("USERS");
@@ -230,6 +231,38 @@ public class AuthenticationIntegrationTests {
                         entry("isValidEmail", true),
                         entry("role", "USER")
                 ));
+    }
+
+    @Test
+    void shouldSendRegisterConfirmationEmail() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+                    "username": "username",
+                    "password": "encodedPassword",
+                    "email": "alice@example.com",
+                    "isValidEmail": false,
+                    "role": "USER"
+                }
+                """, "USERS");
+
+        String email = "alice@example.com";
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(post("/auth/resend-confirmation-email")
+                .content(email)
+                .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk());
+                });
+
+        verify(emailService, times(1)).sendEmail(eq("alice@example.com"), anyString(), anyString());
     }
 
 }

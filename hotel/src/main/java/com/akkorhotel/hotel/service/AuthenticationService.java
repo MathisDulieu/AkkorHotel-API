@@ -48,7 +48,7 @@ public class AuthenticationService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("User successfully registered!");
     }
 
     public ResponseEntity<String> login(LoginRequest loginRequest) {
@@ -94,8 +94,23 @@ public class AuthenticationService {
         return ResponseEntity.ok().body("Email successfully validated");
     }
 
-    public ResponseEntity<String> resendConfirmationEmail() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<String> resendConfirmationEmail(String email) {
+        Optional<User> optionalUser = userDao.findByEmail(email);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+
+        User user = optionalUser.get();
+        if (user.getIsValidEmail()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email already validated");
+        }
+
+        String error = sendRegisterConfirmationEmail(user);
+        if (!isNull(error)) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+
+        return ResponseEntity.ok().body("Confirmation email successfully sent");
     }
 
     private String getValidationError(User user) {
