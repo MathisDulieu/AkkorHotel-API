@@ -10,11 +10,13 @@ import org.springframework.mail.MailException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
 import static com.akkorhotel.hotel.configuration.EnvConfiguration.getMailRegisterConfirmationLink;
 import static com.akkorhotel.hotel.configuration.EnvConfiguration.getMailRegisterSubject;
+import static java.util.Collections.singletonMap;
 import static java.util.Objects.isNull;
 
 @Service
@@ -30,10 +32,10 @@ public class AuthenticationService {
     private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
     private static final String PASSWORD_REGEX = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-={}';:\",.<>?|`~])[A-Za-z\\d!@#$%^&*()_+\\-={}';:\",.<>?|`~]{8,}$";
 
-    public ResponseEntity<String> register(User user) {
+    public ResponseEntity<Map<String, String>> register(User user) {
         String error = getValidationError(user);
         if (!isNull(error)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", error));
         }
 
         user.setId(uuidProvider.generateUuid());
@@ -42,72 +44,72 @@ public class AuthenticationService {
 
         error = sendRegisterConfirmationEmail(user);
         if (!isNull(error)) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(singletonMap("error", error));
         }
 
-        return ResponseEntity.ok("User successfully registered!");
+        return ResponseEntity.ok(singletonMap("message", "User successfully registered!"));
     }
 
-    public ResponseEntity<String> login(LoginRequest loginRequest) {
+    public ResponseEntity<Map<String, String>> login(LoginRequest loginRequest) {
         Optional<User> optionalUser = userDao.findByEmail(loginRequest.getEmail());
 
         if (optionalUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "User not found"));
         }
 
         User user = optionalUser.get();
 
         if(!user.getIsValidEmail()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email is not verified");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(singletonMap("error", "Email is not verified"));
         }
 
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid password");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "Invalid password"));
         }
 
-        return ResponseEntity.ok(jwtTokenService.generateToken(user.getId()));
+        return ResponseEntity.ok(singletonMap("token", jwtTokenService.generateToken(user.getId())));
     }
 
-    public ResponseEntity<String> confirmEmail(String token) {
+    public ResponseEntity<Map<String, String>> confirmEmail(String token) {
         boolean isTokenValid = jwtTokenService.isEmailTokenValid(token);
         if (!isTokenValid) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired token");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "Invalid or expired token"));
         }
 
         String userId = jwtTokenService.resolveUserIdFromToken(token);
         Optional<User> optionalUser = userDao.findById(userId);
         if (optionalUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "User not found"));
         }
 
         User user = optionalUser.get();
         if (user.getIsValidEmail()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email already validated");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "Email already validated"));
         }
 
         user.setIsValidEmail(true);
         userDao.save(user);
 
-        return ResponseEntity.ok().body("Email successfully validated");
+        return ResponseEntity.ok().body(singletonMap("message", "Email successfully validated"));
     }
 
-    public ResponseEntity<String> resendConfirmationEmail(String email) {
+    public ResponseEntity<Map<String, String>> resendConfirmationEmail(String email) {
         Optional<User> optionalUser = userDao.findByEmail(email);
         if (optionalUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "User not found"));
         }
 
         User user = optionalUser.get();
         if (user.getIsValidEmail()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email already validated");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "Email already validated"));
         }
 
         String error = sendRegisterConfirmationEmail(user);
         if (!isNull(error)) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(singletonMap("error", error));
         }
 
-        return ResponseEntity.ok().body("Confirmation email successfully sent");
+        return ResponseEntity.ok().body(singletonMap("message", "Confirmation email successfully sent"));
     }
 
     private String getValidationError(User user) {

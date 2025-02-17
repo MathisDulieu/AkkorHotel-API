@@ -1,8 +1,10 @@
 package com.akkorhotel.hotel.controller;
 
 import com.akkorhotel.hotel.model.User;
+import com.akkorhotel.hotel.model.request.ConfirmEmailRequest;
 import com.akkorhotel.hotel.model.request.CreateUserRequest;
 import com.akkorhotel.hotel.model.request.LoginRequest;
+import com.akkorhotel.hotel.model.request.ResendConfirmationEmailRequest;
 import com.akkorhotel.hotel.service.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -92,7 +96,7 @@ public class AuthenticationController {
                     )
             )
     })
-    public ResponseEntity<String> register(
+    public ResponseEntity<Map<String, String>> register(
             @RequestBody(
                     description = "User object containing the registration details.",
                     content = @Content(
@@ -233,7 +237,7 @@ public class AuthenticationController {
                     )
             )
     })
-    public ResponseEntity<String> login(
+    public ResponseEntity<Map<String, String>> login(
             @RequestBody(
                     description = """
             User credentials for login.
@@ -369,8 +373,22 @@ public class AuthenticationController {
                     )
             )
     })
-    public ResponseEntity<String> confirmEmail(@org.springframework.web.bind.annotation.RequestBody String token) {
-        return authenticationService.confirmEmail(token);
+    public ResponseEntity<Map<String, String>> confirmEmail(
+            @RequestBody(
+                    description = "Request body containing the token.",
+                    content = @Content(
+                            examples = @ExampleObject(
+                                    name = "Confirm Email Request Example",
+                                    value = """
+                                {
+                                    "token": "eyTOKEN"
+                                }
+                                """
+                            )
+                    )
+            )
+            @org.springframework.web.bind.annotation.RequestBody ConfirmEmailRequest request) {
+        return authenticationService.confirmEmail(request.getToken());
     }
 
     @PostMapping("/resend-confirmation-email")
@@ -448,7 +466,7 @@ public class AuthenticationController {
                     )
             )
     })
-    public ResponseEntity<String> resendConfirmationEmail(
+    public ResponseEntity<Map<String, String>> resendConfirmationEmail(
             @RequestBody(
                     description = "Request body containing the email of the user.",
                     content = @Content(
@@ -461,8 +479,8 @@ public class AuthenticationController {
                                 """
                             )
                     )
-            ) @org.springframework.web.bind.annotation.RequestBody String email) {
-        return authenticationService.resendConfirmationEmail(email);
+            ) @org.springframework.web.bind.annotation.RequestBody ResendConfirmationEmailRequest request) {
+        return authenticationService.resendConfirmationEmail(request.getEmail());
     }
 
 }

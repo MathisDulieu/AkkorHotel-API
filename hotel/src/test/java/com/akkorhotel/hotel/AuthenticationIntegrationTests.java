@@ -4,6 +4,7 @@ import com.akkorhotel.hotel.service.EmailService;
 import com.akkorhotel.hotel.service.JwtTokenService;
 import com.akkorhotel.hotel.service.UuidProvider;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import com.jayway.jsonpath.JsonPath;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
@@ -37,6 +38,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -102,7 +104,8 @@ public class AuthenticationIntegrationTests {
         await()
                 .atMost(Duration.ofSeconds(5))
                 .untilAsserted(() -> {
-                    resultActions.andExpect(status().isOk());
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.message").value("User successfully registered!"));
                 });
 
 
@@ -166,16 +169,19 @@ public class AuthenticationIntegrationTests {
         await()
                 .atMost(Duration.ofSeconds(5))
                 .untilAsserted(() -> {
-                    resultActions.andExpect(status().isOk());
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.token").isNotEmpty());
                 });
 
         String jsonResponse = resultActions.andReturn().getResponse().getContentAsString();
-        assertThat(jsonResponse).isNotBlank();
+        String token = JsonPath.parse(jsonResponse).read("$.token");
+
+        assertThat(token).isNotBlank();
 
         Jws<Claims> parsedToken = Jwts.parserBuilder()
                 .setSigningKey(SECRET_KEY)
                 .build()
-                .parseClaimsJws(jsonResponse);
+                .parseClaimsJws(token);
 
         Claims claims = parsedToken.getBody();
         assertThat(claims.getSubject()).isEqualTo("f2cccd2f-5711-4356-a13a-f687dc983ce1");
@@ -205,9 +211,15 @@ public class AuthenticationIntegrationTests {
                 .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
                 .compact();
 
+        String body = """
+            {
+                "token": "%s"
+            }
+            """.formatted(token);
+
         // Act
         ResultActions resultActions = mockMvc.perform(post("/auth/confirm-email")
-                .content(token)
+                .content(body)
                 .contentType(MediaType.APPLICATION_JSON)
         );
 
@@ -215,7 +227,8 @@ public class AuthenticationIntegrationTests {
         await()
                 .atMost(Duration.ofSeconds(5))
                 .untilAsserted(() -> {
-                    resultActions.andExpect(status().isOk());
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.message").value("Email successfully validated"));
                 });
 
         List<Map> savedUsers = mongoTemplate.findAll(Map.class, "USERS");
@@ -247,11 +260,15 @@ public class AuthenticationIntegrationTests {
                 }
                 """, "USERS");
 
-        String email = "alice@example.com";
+        String body = """
+            {
+                "email": "alice@example.com"
+            }
+            """;
 
         // Act
         ResultActions resultActions = mockMvc.perform(post("/auth/resend-confirmation-email")
-                .content(email)
+                .content(body)
                 .contentType(MediaType.APPLICATION_JSON)
         );
 
@@ -259,7 +276,8 @@ public class AuthenticationIntegrationTests {
         await()
                 .atMost(Duration.ofSeconds(5))
                 .untilAsserted(() -> {
-                    resultActions.andExpect(status().isOk());
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.message").value("Confirmation email successfully sent"));
                 });
 
         verify(emailService, times(1)).sendEmail(eq("alice@example.com"), anyString(), anyString());
