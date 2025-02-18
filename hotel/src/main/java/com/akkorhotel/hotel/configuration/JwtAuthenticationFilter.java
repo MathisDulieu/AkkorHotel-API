@@ -1,7 +1,7 @@
 package com.akkorhotel.hotel.configuration;
 
 import com.akkorhotel.hotel.dao.UserDao;
-import com.akkorhotel.hotel.model.UserRole;
+import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.service.JwtTokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,8 +19,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-
-import static java.util.Objects.isNull;
+import java.util.Objects;
+import java.util.Optional;
 
 @Component
 @AllArgsConstructor
@@ -39,7 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         Authentication userInformations = getUserInformations(request);
-        if (isNull(userInformations)) {
+        if (Objects.isNull(userInformations)) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "You must be authenticated to perform this action.");
             return;
         }
@@ -50,31 +50,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private Authentication getUserInformations(HttpServletRequest request) {
         String userId = jwtTokenService.resolveUserIdFromRequest(request);
-        if (isNull(userId)) {
+        if (Objects.isNull(userId)) {
             return null;
         }
 
-        String userRole = getUserRole(userId);
-        if (isNull(userRole)) {
-            return null;
-        }
+        Optional<User> optionalUser = userDao.findById(userId);
 
-        return buildAuthentication(userId, userRole);
+        return optionalUser.map(this::buildAuthentication).orElse(null);
     }
 
-    private Authentication buildAuthentication(String userId, String userRole) {
-        List<SimpleGrantedAuthority> authorityUserRole = Collections.singletonList(new SimpleGrantedAuthority(userRole));
-        return new UsernamePasswordAuthenticationToken(userId, null, authorityUserRole);
-    }
-
-    private String getUserRole(String userId) {
-        UserRole userRole = userDao.getUserRole(userId);
-        return isNull(userRole) ? null : userRole.toString();
+    private Authentication buildAuthentication(User user) {
+        List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(user.getRole().toString()));
+        return new UsernamePasswordAuthenticationToken(user, null, authorities);
     }
 
     private boolean isNotPrivateRoute(String uri) {
-        return !uri.startsWith("/api/private");
+        return !uri.startsWith("/private");
     }
 }
-
-

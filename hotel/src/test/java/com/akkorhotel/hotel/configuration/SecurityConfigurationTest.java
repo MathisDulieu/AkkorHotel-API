@@ -46,7 +46,7 @@ class SecurityConfigurationTest extends AbstractContainerBaseTest {
     @Test
     void shouldAllowAccessToPublicRoute() throws Exception {
         // Act
-        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/api/public/any"));
+        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/public/any"));
 
         // Assert
         int statusCode = result.andReturn().getResponse().getStatus();
@@ -56,7 +56,7 @@ class SecurityConfigurationTest extends AbstractContainerBaseTest {
     }
 
     @Test
-    void shouldAllowAccessToProtectedRoute_whenUserIsAuthenticated() throws Exception {
+    void shouldAllowAccessToPrivateRoute_whenUserIsAuthenticated() throws Exception {
         // Arrange
         mongoTemplate.insert("""
                 {
@@ -76,7 +76,7 @@ class SecurityConfigurationTest extends AbstractContainerBaseTest {
                 .compact();
 
         // Act
-        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/api/private/protected/any")
+        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/private/any")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken));
 
         // Assert
@@ -107,7 +107,7 @@ class SecurityConfigurationTest extends AbstractContainerBaseTest {
                 .compact();
 
         // Act
-        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/api/private/admin/any")
+        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/private/admin/any")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken));
 
         // Assert
@@ -123,7 +123,7 @@ class SecurityConfigurationTest extends AbstractContainerBaseTest {
         String userToken = "invalid-token";
 
         // Act
-        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/api/private/any")
+        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/private/any")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken));
 
         // Assert
@@ -135,7 +135,7 @@ class SecurityConfigurationTest extends AbstractContainerBaseTest {
     @Test
     void shouldReturnUnauthorized_whenUserTriesToAccessPrivateRouteAndTokenIsNull() throws Exception {
         // Act
-        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/api/private/any")
+        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/private/any")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + null));
 
         // Assert
@@ -165,7 +165,7 @@ class SecurityConfigurationTest extends AbstractContainerBaseTest {
                 .compact();
 
         // Act
-        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/api/private/admin/any")
+        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/private/admin/any")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken));
 
         // Assert
@@ -188,7 +188,7 @@ class SecurityConfigurationTest extends AbstractContainerBaseTest {
                 .compact();
 
         // Act
-        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/api/private/any")
+        ResultActions result = mockMvc.perform(MockMvcRequestBuilders.get("/private/any")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken));
 
         // Assert
