@@ -1,0 +1,13 @@
+### Resend register confirmation email - 200
+POST {{url}}/auth/resend-confirmation-email
+Content-Type: application/json
+
+{
+  "email": "alice@example.com"
+}
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

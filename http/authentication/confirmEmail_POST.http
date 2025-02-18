@@ -1,0 +1,13 @@
+### Confirm email of a user - 200
+POST {{url}}/auth/confirm-email
+Content-Type: application/json
+
+{
+  "token": "emailToken"
+}
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

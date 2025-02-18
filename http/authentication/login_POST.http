@@ -1,0 +1,14 @@
+### Login a User - 200
+POST {{url}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "AliceStrongP@ss1!"
+}
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

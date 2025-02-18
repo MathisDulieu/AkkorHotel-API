@@ -1,0 +1,15 @@
+### Register a new User - 200
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "alice123",
+  "email": "alice@example.com",
+  "password": "AliceStrongP@ss1!"
+}
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

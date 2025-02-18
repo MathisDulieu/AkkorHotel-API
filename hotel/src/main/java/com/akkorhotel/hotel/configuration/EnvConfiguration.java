@@ -20,7 +20,7 @@ public class EnvConfiguration {
     }
 
     public static String getAppEmail() {
-        return isNull(System.getenv("APP_EMAIL")) ? "alice.test@gmail.com" : System.getenv("APP_EMAIL");
+        return isNull(System.getenv("APP_EMAIL")) ? "akkorhotel@gmail.com" : System.getenv("APP_EMAIL");
     }
 
     public static String getMailModifiedUsername() {
