@@ -55,4 +55,12 @@ public class UserDao {
         return Optional.ofNullable(mongoTemplate.findById(userId, User.class, USER_COLLECTION));
     }
 
+    public boolean isUsernameAlreadyUsed(String username) {
+        return mongoTemplate.exists(new Query(Criteria.where("username").is(username)), USER_COLLECTION);
+    }
+
+    public boolean isEmailAlreadyUsed(String email) {
+        return mongoTemplate.exists(new Query(Criteria.where("email").is(email)), USER_COLLECTION);
+    }
+
 }

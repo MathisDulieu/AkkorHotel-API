@@ -1,0 +1,17 @@
+### Login a User - 200
+PATCH {{url}}/private/user
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "username": "newUsername",
+  "email": "alice@example.com",
+  "oldPassword": "oldPassword",
+  "newPassword": "AliceStrongP@ss1!"
+}
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

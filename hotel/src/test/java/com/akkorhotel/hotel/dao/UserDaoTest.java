@@ -226,5 +226,89 @@ class UserDaoTest {
         assertThat(userOptional).isEmpty();
     }
 
+    @Test
+    void shouldReturnTrue_whenEmailIsAlreadyUsed() {
+        // Arrange
+        mongoTemplate.insert("""
+            {
+                "_id": "id",
+                "username": "username",
+                "password": "password",
+                "email": "already.used@example.com",
+                "isValidEmail": true,
+                "role": "USER"
+            }
+            """, "USERS");
+
+        // Act
+        boolean isEmailAlreadyUsed = userDao.isEmailAlreadyUsed("already.used@example.com");
+
+        // Assert
+        assertThat(isEmailAlreadyUsed).isTrue();
+    }
+
+    @Test
+    void shouldReturnFalse_whenEmailIsNotUsed() {
+        // Arrange
+        mongoTemplate.insert("""
+            {
+                "_id": "id",
+                "username": "username",
+                "password": "password",
+                "email": "email",
+                "isValidEmail": true,
+                "role": "USER"
+            }
+            """, "USERS");
+
+        // Act
+        boolean isEmailAlreadyUsed = userDao.isEmailAlreadyUsed("not.used@example.com");
+
+        // Assert
+        assertThat(isEmailAlreadyUsed).isFalse();
+    }
+
+    @Test
+    void shouldReturnTrue_whenUsernameIsAlreadyUsed() {
+        // Arrange
+        mongoTemplate.insert("""
+            {
+                "_id": "id",
+                "username": "alreadyUsed",
+                "password": "password",
+                "email": "email",
+                "isValidEmail": true,
+                "role": "USER"
+            }
+            """, "USERS");
+
+        // Act
+        boolean isUsernameAlreadyUsed = userDao.isUsernameAlreadyUsed("alreadyUsed");
+
+        // Assert
+        assertThat(isUsernameAlreadyUsed).isTrue();
+    }
+
+    @Test
+    void shouldReturnFalse_whenUsernameIsNotUsed() {
+        // Arrange
+        mongoTemplate.insert("""
+            {
+                "_id": "id",
+                "username": "username",
+                "password": "password",
+                "email": "email",
+                "isValidEmail": true,
+                "role": "USER"
+            }
+            """, "USERS");
+
+        // Act
+        boolean isUsernameAlreadyUsed = userDao.isUsernameAlreadyUsed("notUsed");
+
+        // Assert
+        assertThat(isUsernameAlreadyUsed).isFalse();
+    }
+
 
 }

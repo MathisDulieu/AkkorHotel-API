@@ -2,9 +2,11 @@ package com.akkorhotel.hotel.controller;
 
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
+import com.akkorhotel.hotel.model.request.UpdateUserRequest;
 import com.akkorhotel.hotel.model.response.GetAuthenticatedUserResponse;
 import com.akkorhotel.hotel.service.JwtAuthenticationService;
 import com.akkorhotel.hotel.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -87,5 +90,38 @@ class UserControllerTest {
         assertThat(capturedRegisterRequest.getRole()).isEqualTo(UserRole.USER);
         assertThat(capturedRegisterRequest.getIsValidEmail()).isTrue();
     }
+
+    @Test
+    void shouldUpdateExistingUser() throws Exception {
+        // Arrange
+        ArgumentCaptor<UpdateUserRequest> captor = ArgumentCaptor.forClass(UpdateUserRequest.class);
+
+        UpdateUserRequest updateRequest = new UpdateUserRequest();
+        updateRequest.setUsername("newUsername");
+        updateRequest.setEmail("new.email@example.com");
+        updateRequest.setOldPassword("oldPass123#!");
+        updateRequest.setNewPassword("newPass456#!");
+
+        when(userService.updateUser(any(UpdateUserRequest.class), any(User.class)))
+                .thenReturn(ResponseEntity.ok(singletonMap("message", "User details updated successfully")));
+
+        // Act
+        mockMvc.perform(patch("/private/user")
+                        .content(new ObjectMapper().writeValueAsString(updateRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .principal(() -> "authenticatedUser"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("User details updated successfully"));
+
+        // Assert
+        verify(userService).updateUser(captor.capture(), any(User.class));
+        UpdateUserRequest capturedUpdateRequest = captor.getValue();
+
+        assertThat(capturedUpdateRequest.getUsername()).isEqualTo("newUsername");
+        assertThat(capturedUpdateRequest.getEmail()).isEqualTo("new.email@example.com");
+        assertThat(capturedUpdateRequest.getOldPassword()).isEqualTo("oldPass123#!");
+        assertThat(capturedUpdateRequest.getNewPassword()).isEqualTo("newPass456#!");
+    }
+
 
 }

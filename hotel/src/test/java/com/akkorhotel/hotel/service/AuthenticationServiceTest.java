@@ -3,6 +3,7 @@ package com.akkorhotel.hotel.service;
 import com.akkorhotel.hotel.dao.UserDao;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.LoginRequest;
+import com.akkorhotel.hotel.utils.UserUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -11,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.MailException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Map;
@@ -39,10 +39,10 @@ class AuthenticationServiceTest {
     private JwtTokenService jwtTokenService;
 
     @Mock
-    private EmailService emailService;
+    private BCryptPasswordEncoder passwordEncoder;
 
     @Mock
-    private BCryptPasswordEncoder passwordEncoder;
+    private UserUtils userUtils;
 
     @Test
     void shouldReturnOkAndRegisterNewUser() {
@@ -53,21 +53,25 @@ class AuthenticationServiceTest {
                 .password("AliceStrongP@ss1!")
                 .build();
 
+        when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
+        when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
+        when(userUtils.isInvalidPassword(anyString())).thenReturn(false);
         when(userDao.isUserInDatabase(anyString(), anyString())).thenReturn(false);
         when(uuidProvider.generateUuid()).thenReturn("anyId");
-        when(jwtTokenService.generateEmailConfirmationToken(anyString())).thenReturn("anyToken");
 
         // Act
         ResponseEntity<Map<String, String>> response = authenticationService.register(user);
 
         // Assert
-        InOrder inOrder = inOrder(userDao, uuidProvider, jwtTokenService, emailService, passwordEncoder);
+        InOrder inOrder = inOrder(userUtils, userDao, uuidProvider, passwordEncoder);
+        inOrder.verify(userUtils).isInvalidEmail("alice@example.com");
+        inOrder.verify(userUtils).isInvalidUsername("alice123");
+        inOrder.verify(userUtils).isInvalidPassword("AliceStrongP@ss1!");
         inOrder.verify(userDao).isUserInDatabase("alice123", "alice@example.com");
         inOrder.verify(uuidProvider).generateUuid();
         inOrder.verify(passwordEncoder).encode("AliceStrongP@ss1!");
         inOrder.verify(userDao).save(user);
-        inOrder.verify(jwtTokenService).generateEmailConfirmationToken("anyId");
-        inOrder.verify(emailService, times(1)).sendEmail(eq("alice@example.com"), any(), any());
+        inOrder.verify(userUtils, times(1)).sendRegisterConfirmationEmail(user);
         inOrder.verifyNoMoreInteractions();
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -75,147 +79,79 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    void shouldNotRegisterNewUserAndSendBadRequest_whenUserEmailIsNull() {
+    void shouldNotRegisterNewUserAndSendBadRequest_whenUserEmailIsInvalid() {
         // Arrange
         User user = User.builder()
                 .username("alice123")
                 .password("AliceStrongP@ss1!")
-                .email(null)
+                .email("invalidEmail")
                 .build();
+
+        when(userUtils.isInvalidEmail(any())).thenReturn(true);
 
         // Act
         ResponseEntity<Map<String, String>> response = authenticationService.register(user);
 
         // Assert
+        verify(userUtils).isInvalidEmail("invalidEmail");
+        verifyNoMoreInteractions(userUtils);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "The provided email is not valid."));
-        verifyNoInteractions(userDao, uuidProvider, passwordEncoder, emailService);
+        verifyNoInteractions(userDao, uuidProvider, passwordEncoder);
     }
 
     @Test
-    void shouldNotRegisterNewUserAndSendBadRequest_whenUserEmailIsNotValid() {
+    void shouldNotRegisterNewUserAndSendBadRequest_whenUsernameIsInvalid() {
         // Arrange
         User user = User.builder()
-                .username("alice123")
-                .email("invalid-email")
-                .password("AliceStrongP@ss1!")
-                .build();
-
-        // Act
-        ResponseEntity<Map<String, String>> response = authenticationService.register(user);
-
-        // Assert
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isEqualTo(singletonMap("error", "The provided email is not valid."));
-        verifyNoInteractions(userDao, uuidProvider, passwordEncoder, emailService);
-    }
-
-    @Test
-    void shouldNotRegisterNewUserAndSendBadRequest_whenUsernameIsNull() {
-        // Arrange
-        User user = User.builder()
-                .username(null)
+                .username("invalidUsername")
                 .email("alice@example.com")
                 .password("AliceStrongP@ss1!")
                 .build();
 
-        // Act
-        ResponseEntity<Map<String, String>> response = authenticationService.register(user);
-
-        // Assert
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isEqualTo(singletonMap("error", "The username must be between 3 and 11 characters long and must not contain spaces."));
-        verifyNoInteractions(userDao, uuidProvider, passwordEncoder, emailService);
-    }
-
-    @Test
-    void shouldNotRegisterNewUserAndSendBadRequest_whenUsernameIsLessThan3Characters() {
-        // Arrange
-        User user = User.builder()
-                .username("ab")
-                .email("alice@example.com")
-                .password("AliceStrongP@ss1!")
-                .build();
+        when(userUtils.isInvalidEmail(any())).thenReturn(false);
+        when(userUtils.isInvalidUsername(any())).thenReturn(true);
 
         // Act
         ResponseEntity<Map<String, String>> response = authenticationService.register(user);
 
         // Assert
+        InOrder inOrder = inOrder(userUtils);
+        inOrder.verify(userUtils).isInvalidEmail("alice@example.com");
+        inOrder.verify(userUtils).isInvalidUsername("invalidUsername");
+        inOrder.verifyNoMoreInteractions();
+
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "The username must be between 3 and 11 characters long and must not contain spaces."));
-        verifyNoInteractions(userDao, uuidProvider, passwordEncoder, emailService);
+        verifyNoInteractions(userDao, uuidProvider, passwordEncoder);
     }
 
     @Test
-    void shouldNotRegisterNewUserAndSendBadRequest_whenUsernameIsMoreThan11Characters() {
-        // Arrange
-        User user = User.builder()
-                .username("12Characters")
-                .email("alice@example.com")
-                .password("AliceStrongP@ss1!")
-                .build();
-
-        // Act
-        ResponseEntity<Map<String, String>> response = authenticationService.register(user);
-
-        // Assert
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isEqualTo(singletonMap("error", "The username must be between 3 and 11 characters long and must not contain spaces."));
-        verifyNoInteractions(userDao, uuidProvider, passwordEncoder, emailService);
-    }
-
-    @Test
-    void shouldNotRegisterNewUserAndSendBadRequest_whenUsernameContainsSpaces() {
-        // Arrange
-        User user = User.builder()
-                .username(" Spaces ")
-                .email("alice@example.com")
-                .password("AliceStrongP@ss1!")
-                .build();
-
-        // Act
-        ResponseEntity<Map<String, String>> response = authenticationService.register(user);
-
-        // Assert
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isEqualTo(singletonMap("error", "The username must be between 3 and 11 characters long and must not contain spaces."));
-        verifyNoInteractions(userDao, uuidProvider, passwordEncoder, emailService);
-    }
-
-    @Test
-    void shouldNotRegisterNewUserAndSendBadRequest_whenPasswordIsNull() {
+    void shouldNotRegisterNewUserAndSendBadRequest_whenPasswordIsInvalid() {
         // Arrange
         User user = User.builder()
                 .username("alice123")
                 .email("alice@example.com")
-                .password(null)
+                .password("invalidPassword")
                 .build();
+
+        when(userUtils.isInvalidEmail(any())).thenReturn(false);
+        when(userUtils.isInvalidUsername(any())).thenReturn(false);
+        when(userUtils.isInvalidPassword(any())).thenReturn(true);
 
         // Act
         ResponseEntity<Map<String, String>> response = authenticationService.register(user);
 
         // Assert
+        InOrder inOrder = inOrder(userUtils);
+        inOrder.verify(userUtils).isInvalidEmail("alice@example.com");
+        inOrder.verify(userUtils).isInvalidUsername("alice123");
+        inOrder.verify(userUtils).isInvalidPassword("invalidPassword");
+        inOrder.verifyNoMoreInteractions();
+
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "The password does not meet the required criteria."));
-        verifyNoInteractions(userDao, uuidProvider, passwordEncoder, emailService);
-    }
-
-    @Test
-    void shouldNotRegisterNewUserAndSendBadRequest_whenPasswordIsNotStrongEnough() {
-        // Arrange
-        User user = User.builder()
-                .username("alice123")
-                .email("alice@example.com")
-                .password("NotStrongPassword")
-                .build();
-
-        // Act
-        ResponseEntity<Map<String, String>> response = authenticationService.register(user);
-
-        // Assert
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isEqualTo(singletonMap("error", "The password does not meet the required criteria."));
-        verifyNoInteractions(userDao, uuidProvider, passwordEncoder, emailService);
+        verifyNoInteractions(userDao, uuidProvider, passwordEncoder);
     }
 
     @Test
@@ -227,17 +163,26 @@ class AuthenticationServiceTest {
                 .password("AliceStrongP@ss1!")
                 .build();
 
+        when(userUtils.isInvalidEmail(any())).thenReturn(false);
+        when(userUtils.isInvalidUsername(any())).thenReturn(false);
+        when(userUtils.isInvalidPassword(any())).thenReturn(false);
         when(userDao.isUserInDatabase(anyString(), eq("alreadyUsed@example.com"))).thenReturn(true);
 
         // Act
         ResponseEntity<Map<String, String>> response = authenticationService.register(user);
 
         // Assert
+        InOrder inOrder = inOrder(userUtils, userDao);
+        inOrder.verify(userUtils).isInvalidEmail("alreadyUsed@example.com");
+        inOrder.verify(userUtils).isInvalidUsername("alice123");
+        inOrder.verify(userUtils).isInvalidPassword("AliceStrongP@ss1!");
+        inOrder.verify(userDao).isUserInDatabase(anyString(), eq("alreadyUsed@example.com"));
+        inOrder.verifyNoMoreInteractions();
+
+        verifyNoInteractions(uuidProvider, passwordEncoder);
+
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "A user with this email or username already exists."));
-        verify(userDao, times(1)).isUserInDatabase(any(), eq("alreadyUsed@example.com"));
-        verifyNoMoreInteractions(userDao);
-        verifyNoInteractions(uuidProvider, passwordEncoder, emailService);
     }
 
     @Test
@@ -249,17 +194,26 @@ class AuthenticationServiceTest {
                 .password("AliceStrongP@ss1!")
                 .build();
 
+        when(userUtils.isInvalidEmail(any())).thenReturn(false);
+        when(userUtils.isInvalidUsername(any())).thenReturn(false);
+        when(userUtils.isInvalidPassword(any())).thenReturn(false);
         when(userDao.isUserInDatabase(eq("alreadyUsed"), anyString())).thenReturn(true);
 
         // Act
         ResponseEntity<Map<String, String>> response = authenticationService.register(user);
 
         // Assert
+        InOrder inOrder = inOrder(userUtils, userDao);
+        inOrder.verify(userUtils).isInvalidEmail("alice@example.com");
+        inOrder.verify(userUtils).isInvalidUsername("alreadyUsed");
+        inOrder.verify(userUtils).isInvalidPassword("AliceStrongP@ss1!");
+        inOrder.verify(userDao).isUserInDatabase(eq("alreadyUsed"), any());
+        inOrder.verifyNoMoreInteractions();
+
+        verifyNoInteractions(uuidProvider, passwordEncoder);
+
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "A user with this email or username already exists."));
-        verify(userDao, times(1)).isUserInDatabase(eq("alreadyUsed"), any());
-        verifyNoMoreInteractions(userDao);
-        verifyNoInteractions(uuidProvider, passwordEncoder, emailService);
     }
 
     @Test
@@ -271,26 +225,30 @@ class AuthenticationServiceTest {
                 .password("AliceStrongP@ss1!")
                 .build();
 
+        when(userUtils.isInvalidEmail(any())).thenReturn(false);
+        when(userUtils.isInvalidUsername(any())).thenReturn(false);
+        when(userUtils.isInvalidPassword(any())).thenReturn(false);
         when(userDao.isUserInDatabase(anyString(), anyString())).thenReturn(false);
         when(uuidProvider.generateUuid()).thenReturn("anyId");
-        when(jwtTokenService.generateEmailConfirmationToken(anyString())).thenReturn("anyToken");
-        doThrow(new MailException("Email error") {}).when(emailService).sendEmail(anyString(), anyString(), anyString());
+        when(userUtils.sendRegisterConfirmationEmail(any())).thenReturn("Failed to send the registration confirmation email. Please try again later.");
 
         // Act
         ResponseEntity<Map<String, String>> response = authenticationService.register(user);
 
         // Assert
-        InOrder inOrder = inOrder(userDao, uuidProvider, jwtTokenService, emailService, passwordEncoder);
+        InOrder inOrder = inOrder(userUtils, userDao, uuidProvider, jwtTokenService, passwordEncoder);
+        inOrder.verify(userUtils).isInvalidEmail("alice@example.com");
+        inOrder.verify(userUtils).isInvalidUsername("alice123");
+        inOrder.verify(userUtils).isInvalidPassword("AliceStrongP@ss1!");
         inOrder.verify(userDao).isUserInDatabase("alice123", "alice@example.com");
         inOrder.verify(uuidProvider).generateUuid();
         inOrder.verify(passwordEncoder).encode("AliceStrongP@ss1!");
         inOrder.verify(userDao).save(user);
-        inOrder.verify(jwtTokenService).generateEmailConfirmationToken("anyId");
-        inOrder.verify(emailService, times(1)).sendEmail(eq("alice@example.com"), any(), any());
+        inOrder.verify(userUtils).sendRegisterConfirmationEmail(user);
         inOrder.verifyNoMoreInteractions();
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(response.getBody()).isEqualTo(singletonMap("error", "Failed to send the registration confirmation email. Please try again later."));
+        assertThat(response.getBody()).isEqualTo(singletonMap("warning", "Failed to send the registration confirmation email. Please try again later."));
     }
 
     @Test
@@ -494,21 +452,22 @@ class AuthenticationServiceTest {
     @Test
     void shouldSendRegisterConfirmationEmail() {
         // Arrange
-        when(userDao.findByEmail(anyString())).thenReturn(Optional.of(User.builder()
+        User user = User.builder()
                 .id("userId")
                 .email("userEmail")
                 .isValidEmail(false)
-                .build()));
-        when(jwtTokenService.generateEmailConfirmationToken(anyString())).thenReturn("anyToken");
+                .build();
+
+        when(userDao.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(userUtils.sendRegisterConfirmationEmail(any())).thenReturn(null);
 
         // Act
         ResponseEntity<Map<String, String>> response = authenticationService.resendConfirmationEmail("userEmail");
 
         // Assert
-        InOrder inOrder = inOrder(userDao, jwtTokenService, emailService);
+        InOrder inOrder = inOrder(userDao, userUtils);
         inOrder.verify(userDao).findByEmail("userEmail");
-        inOrder.verify(jwtTokenService).generateEmailConfirmationToken("userId");
-        inOrder.verify(emailService, times(1)).sendEmail(eq("userEmail"), any(), any());
+        inOrder.verify(userUtils).sendRegisterConfirmationEmail(user);
         inOrder.verifyNoMoreInteractions();
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -527,7 +486,7 @@ class AuthenticationServiceTest {
         verify(userDao).findByEmail("userEmail");
 
         verifyNoMoreInteractions(userDao);
-        verifyNoInteractions(jwtTokenService);
+        verifyNoInteractions(userUtils);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "User not found"));
@@ -549,7 +508,7 @@ class AuthenticationServiceTest {
         verify(userDao).findByEmail("userEmail");
 
         verifyNoMoreInteractions(userDao);
-        verifyNoInteractions(jwtTokenService);
+        verifyNoInteractions(userUtils);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "Email already validated"));
@@ -558,22 +517,22 @@ class AuthenticationServiceTest {
     @Test
     void shouldReturnInternalServerError_whenExceptionOccursDuringEmailSending() {
         // Arrange
-        when(userDao.findByEmail(anyString())).thenReturn(Optional.of(User.builder()
+        User user = User.builder()
                 .id("userId")
                 .email("userEmail")
                 .isValidEmail(false)
-                .build()));
-        when(jwtTokenService.generateEmailConfirmationToken(anyString())).thenReturn("anyToken");
-        doThrow(new MailException("Email error") {}).when(emailService).sendEmail(anyString(), anyString(), anyString());
+                .build();
+
+        when(userDao.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(userUtils.sendRegisterConfirmationEmail(any())).thenReturn("Failed to send the registration confirmation email. Please try again later.");
 
         // Act
         ResponseEntity<Map<String, String>> response = authenticationService.resendConfirmationEmail("userEmail");
 
         // Assert
-        InOrder inOrder = inOrder(userDao, jwtTokenService, emailService);
+        InOrder inOrder = inOrder(userDao, userUtils);
         inOrder.verify(userDao).findByEmail("userEmail");
-        inOrder.verify(jwtTokenService).generateEmailConfirmationToken("userId");
-        inOrder.verify(emailService, times(1)).sendEmail(eq("userEmail"), any(), any());
+        inOrder.verify(userUtils).sendRegisterConfirmationEmail(user);
         inOrder.verifyNoMoreInteractions();
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);

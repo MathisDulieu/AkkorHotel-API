@@ -1,17 +1,22 @@
 package com.akkorhotel.hotel.controller;
 
+import com.akkorhotel.hotel.model.User;
+import com.akkorhotel.hotel.model.request.UpdateUserRequest;
 import com.akkorhotel.hotel.model.response.GetAuthenticatedUserResponse;
 import com.akkorhotel.hotel.service.JwtAuthenticationService;
 import com.akkorhotel.hotel.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -100,6 +105,86 @@ public class UserController {
     public ResponseEntity<Map<String, GetAuthenticatedUserResponse>> getAuthenticatedUser() {
         return userService.getAuthenticatedUser(jwtAuthenticationService.getAuthenticatedUser());
     }
+
+    @PatchMapping
+    @Operation(
+            tags = {"User"},
+            summary = "Update user details",
+            description = "Allows an authenticated user to update their email, username, or password."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User details updated successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Success Example",
+                                    value = """
+                                {
+                                    "status": 200,
+                                    "message": "User details updated successfully"
+                                }
+                                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad request due to validation errors",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Validation Errors Example",
+                                    value = """
+                                {
+                                    "status": 400,
+                                    "error": "Bad Request",
+                                    "message": "Invalid username: Must be 3-11 characters and cannot contain spaces. | Email already taken: Please choose a different one."
+                                }
+                                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error when sending confirmation email",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Email Sending Error Example",
+                                    value = """
+                                {
+                                    "status": 500,
+                                    "error": "Internal Server Error",
+                                    "message": "Failed to send confirmation email. Please try again later."
+                                }
+                                """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> updateUser(
+            @RequestBody(
+                    description = "Request body containing the fields to update.",
+                    content = @Content(
+                            examples = @ExampleObject(
+                                    name = "Update User Request Example",
+                                    value = """
+                                {
+                                    "email": "new.email@example.com",
+                                    "username": "newUsername",
+                                    "oldPassword": "oldPass123",
+                                    "newPassword": "newPass456"
+                                }
+                                """
+                            )
+                    )
+            ) @org.springframework.web.bind.annotation.RequestBody UpdateUserRequest request,
+            @AuthenticationPrincipal User authenticatedUser) {
+        return userService.updateUser(request, authenticatedUser);
+    }
+
 
 
 }
