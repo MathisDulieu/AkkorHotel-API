@@ -33,7 +33,7 @@ public class AuthenticationController {
             summary = "Register a new user",
             description = """
     Register a new user in the system.
-    The username must be between 3 and 8 characters long,
+    The username must be between 3 and 11 characters long,
     the email must be valid, and the password must meet security requirements.
 
     ## Password Requirements:
@@ -53,29 +53,61 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "Registration Success Example",
                                     value = """
-                                {
-                                    "status": 200,
-                                    "message": "Registration successful. A confirmation email has been sent."
-                                }
-                            """
+                            {
+                                "status": 200,
+                                "message": "Registration successful. A confirmation email has been sent."
+                            }
+                        """
                             )
                     )
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid request due to bad data (e.g., invalid email or weak password)",
+                    description = "Invalid request due to bad data",
                     content = @Content(
                             mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    name = "Invalid Request Example",
-                                    value = """
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Invalid Email Example",
+                                            value = """
                                 {
                                     "status": 400,
                                     "error": "Bad Request",
-                                    "message": "Invalid email format or weak password"
+                                    "message": "The provided email is not valid."
                                 }
-                            """
-                            )
+                                """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Username Example",
+                                            value = """
+                                {
+                                    "status": 400,
+                                    "error": "Bad Request",
+                                    "message": "The username must be between 3 and 11 characters long and must not contain spaces."
+                                }
+                                """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Password Example",
+                                            value = """
+                                {
+                                    "status": 400,
+                                    "error": "Bad Request",
+                                    "message": "The password does not meet the required criteria."
+                                }
+                                """
+                                    ),
+                                    @ExampleObject(
+                                            name = "User Already Exists Example",
+                                            value = """
+                                {
+                                    "status": 400,
+                                    "error": "Bad Request",
+                                    "message": "A user with this email or username already exists."
+                                }
+                                """
+                                    )
+                            }
                     )
             ),
             @ApiResponse(
@@ -86,12 +118,12 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "Email Sending Error Example",
                                     value = """
-                                {
-                                    "status": 500,
-                                    "error": "Internal Server Error",
-                                    "message": "Failed to send confirmation email. Please try again later."
-                                }
-                            """
+                            {
+                                "status": 500,
+                                "error": "Internal Server Error",
+                                "message": "Failed to send confirmation email. Please try again later."
+                            }
+                        """
                             )
                     )
             )
@@ -104,57 +136,56 @@ public class AuthenticationController {
                                     @ExampleObject(
                                             name = "Alice Registration Example",
                                             value = """
-                                        {
-                                            "username": "alice123",
-                                            "email": "alice@example.com",
-                                            "password": "AliceStrongP@ss1!"
-                                        }
-                                        """
+                                    {
+                                        "username": "alice123",
+                                        "email": "alice@example.com",
+                                        "password": "AliceStrongP@ss1!"
+                                    }
+                                    """
                                     ),
                                     @ExampleObject(
                                             name = "Bob Registration Example",
                                             value = """
-                                        {
-                                            "username": "bobby78",
-                                            "email": "bob78@example.com",
-                                            "password": "BobbySecure2$"
-                                        }
-                                        """
+                                    {
+                                        "username": "bobby78",
+                                        "email": "bob78@example.com",
+                                        "password": "BobbySecure2$"
+                                    }
+                                    """
                                     ),
                                     @ExampleObject(
                                             name = "Charlie Registration Example",
                                             value = """
-                                        {
-                                            "username": "chaz",
-                                            "email": "charlie@example.org",
-                                            "password": "ChazP@ssw0rd3!"
-                                        }
-                                        """
+                                    {
+                                        "username": "chaz",
+                                        "email": "charlie@example.org",
+                                        "password": "ChazP@ssw0rd3!"
+                                    }
+                                    """
                                     ),
                                     @ExampleObject(
                                             name = "Diana Registration Example",
                                             value = """
-                                        {
-                                            "username": "diana",
-                                            "email": "diana.user@example.com",
-                                            "password": "DIAStrong5@ss"
-                                        }
-                                        """
+                                    {
+                                        "username": "diana",
+                                        "email": "diana.user@example.com",
+                                        "password": "DIAStrong5@ss"
+                                    }
+                                    """
                                     ),
                                     @ExampleObject(
                                             name = "Eve Registration Example",
                                             value = """
-                                        {
-                                            "username": "eve12345",
-                                            "email": "eve@example.net",
-                                            "password": "EveStrong5@ss"
-                                        }
-                                        """
+                                    {
+                                        "username": "eve12345",
+                                        "email": "eve@example.net",
+                                        "password": "EveStrong5@ss"
+                                    }
+                                    """
                                     )
                             }
                     )
-            )
-            @org.springframework.web.bind.annotation.RequestBody CreateUserRequest user) {
+            ) @org.springframework.web.bind.annotation.RequestBody CreateUserRequest user) {
         User userToSave = User.builder()
                 .username(user.getUsername())
                 .password(user.getPassword())
@@ -169,8 +200,8 @@ public class AuthenticationController {
             tags = {"Authentication"},
             summary = "User login",
             description = """
-        Authenticates a user using their email and password.
-        Returns an access token upon successful login.
+    Authenticates a user using their email and password.
+    Returns an access token upon successful login. The email must be validated to access the account.
     """
     )
     @ApiResponses({
@@ -178,7 +209,7 @@ public class AuthenticationController {
                     responseCode = "200",
                     description = "Successful authentication, access token returned",
                     content = @Content(
-                            mediaType = "text/plain",
+                            mediaType = "application/json",
                             examples = @ExampleObject(
                                     name = "Access Token Example",
                                     value = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -187,18 +218,18 @@ public class AuthenticationController {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid credentials or bad request (e.g., incorrect password or email)",
+                    description = "Invalid credentials or bad request (e.g., incorrect password)",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
-                                    name = "Invalid Login Example",
+                                    name = "Invalid Password Example",
                                     value = """
-                    {
-                        "status": 400,
-                        "error": "Bad Request",
-                        "message": "Invalid email or password"
-                    }
-                """
+                {
+                    "status": 400,
+                    "error": "Bad Request",
+                    "message": "Invalid password"
+                }
+            """
                             )
                     )
             ),
@@ -210,12 +241,12 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "User Not Found Example",
                                     value = """
-                    {
-                        "status": 404,
-                        "error": "Not Found",
-                        "message": "User not found"
-                    }
-                """
+                {
+                    "status": 404,
+                    "error": "Not Found",
+                    "message": "User not found"
+                }
+            """
                             )
                     )
             ),
@@ -227,12 +258,12 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "Email Not Validated Example",
                                     value = """
-                    {
-                        "status": 409,
-                        "error": "Conflict",
-                        "message": "User's email is not validated yet"
-                    }
-                """
+                {
+                    "status": 409,
+                    "error": "Conflict",
+                    "message": "Email is not verified"
+                }
+            """
                             )
                     )
             )
@@ -240,61 +271,60 @@ public class AuthenticationController {
     public ResponseEntity<Map<String, String>> login(
             @RequestBody(
                     description = """
-            User credentials for login.
-            - **email**: The email of the user.
-            - **password**: The user's password.
-        """,
+        User credentials for login.
+        - **email**: The email of the user.
+        - **password**: The user's password.
+    """,
                     content = @Content(
                             examples = {
                                     @ExampleObject(
                                             name = "Alice Login Example",
                                             value = """
-                        {
-                            "email": "alice@example.com",
-                            "password": "AliceStrongP@ss1!"
-                        }
-                    """
+                    {
+                        "email": "alice@example.com",
+                        "password": "AliceStrongP@ss1!"
+                    }
+                """
                                     ),
                                     @ExampleObject(
                                             name = "Bob Login Example",
                                             value = """
-                        {
-                            "email": "bob78@example.com",
-                            "password": "BobbySecure2$"
-                        }
-                    """
+                    {
+                        "email": "bob78@example.com",
+                        "password": "BobbySecure2$"
+                    }
+                """
                                     ),
                                     @ExampleObject(
                                             name = "Charlie Login Example",
                                             value = """
-                        {
-                            "email": "charlie@example.org",
-                            "password": "ChazP@ssw0rd3!"
-                        }
-                    """
+                    {
+                        "email": "charlie@example.org",
+                        "password": "ChazP@ssw0rd3!"
+                    }
+                """
                                     ),
                                     @ExampleObject(
                                             name = "Diana Login Example",
                                             value = """
-                        {
-                            "email": "diana.user@example.com",
-                            "password": "DIAStrong5@ss"
-                        }
-                    """
+                    {
+                        "email": "diana.user@example.com",
+                        "password": "DIAStrong5@ss"
+                    }
+                """
                                     ),
                                     @ExampleObject(
                                             name = "Eve Login Example",
                                             value = """
-                        {
-                            "email": "eve@example.net",
-                            "password": "EveStrong5@ss"
-                        }
-                    """
+                    {
+                        "email": "eve@example.net",
+                        "password": "EveStrong5@ss"
+                    }
+                """
                                     )
                             }
                     )
-            )
-            @org.springframework.web.bind.annotation.RequestBody LoginRequest loginRequest) {
+            ) @org.springframework.web.bind.annotation.RequestBody LoginRequest loginRequest) {
         return authenticationService.login(loginRequest);
     }
 
@@ -313,11 +343,11 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "Email Confirmation Success Example",
                                     value = """
-                    {
-                        "status": 200,
-                        "message": "Email successfully validated"
-                    }
-                """
+                        {
+                            "status": 200,
+                            "message": "Email successfully validated"
+                        }
+                    """
                             )
                     )
             ),
@@ -329,12 +359,12 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "Invalid Token Example",
                                     value = """
-                    {
-                        "status": 400,
-                        "error": "Bad Request",
-                        "message": "Invalid or expired token"
-                    }
-                """
+                        {
+                            "status": 400,
+                            "error": "Bad Request",
+                            "message": "Invalid or expired token"
+                        }
+                    """
                             )
                     )
             ),
@@ -346,29 +376,29 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "User Not Found Example",
                                     value = """
-                    {
-                        "status": 404,
-                        "error": "Not Found",
-                        "message": "User not found"
-                    }
-                """
+                        {
+                            "status": 404,
+                            "error": "Not Found",
+                            "message": "User not found"
+                        }
+                    """
                             )
                     )
             ),
             @ApiResponse(
-                    responseCode = "409",
+                    responseCode = "400",
                     description = "Email already validated",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
                                     name = "Email Already Validated Example",
                                     value = """
-                    {
-                        "status": 409,
-                        "error": "Conflict",
-                        "message": "Email already validated"
-                    }
-                """
+                        {
+                            "status": 400,
+                            "error": "Bad Request",
+                            "message": "Email already validated"
+                        }
+                    """
                             )
                     )
             )
@@ -380,10 +410,10 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "Confirm Email Request Example",
                                     value = """
-                                {
-                                    "token": "eyTOKEN"
-                                }
-                                """
+                            {
+                                "token": "eyTOKEN"
+                            }
+                            """
                             )
                     )
             )
@@ -406,11 +436,11 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "Success Example",
                                     value = """
-                                {
-                                    "status": 200,
-                                    "message": "Confirmation email sent successfully."
-                                }
-                                """
+                        {
+                            "status": 200,
+                            "message": "Confirmation email successfully sent."
+                        }
+                    """
                             )
                     )
             ),
@@ -422,12 +452,12 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "Bad Request Example",
                                     value = """
-                                {
-                                    "status": 400,
-                                    "error": "Bad Request",
-                                    "message": "Email already validated."
-                                }
-                                """
+                        {
+                            "status": 400,
+                            "error": "Bad Request",
+                            "message": "Email already validated."
+                        }
+                    """
                             )
                     )
             ),
@@ -439,12 +469,12 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "User Not Found Example",
                                     value = """
-                                {
-                                    "status": 404,
-                                    "error": "Not Found",
-                                    "message": "User not found."
-                                }
-                                """
+                        {
+                            "status": 404,
+                            "error": "Not Found",
+                            "message": "User not found."
+                        }
+                    """
                             )
                     )
             ),
@@ -456,12 +486,12 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "Email Sending Error Example",
                                     value = """
-                                {
-                                    "status": 500,
-                                    "error": "Internal Server Error",
-                                    "message": "Failed to send confirmation email. Please try again later."
-                                }
-                                """
+                        {
+                            "status": 500,
+                            "error": "Internal Server Error",
+                            "message": "Failed to send confirmation email. Please try again later."
+                        }
+                    """
                             )
                     )
             )
@@ -473,13 +503,14 @@ public class AuthenticationController {
                             examples = @ExampleObject(
                                     name = "Resend Email Request Example",
                                     value = """
-                                {
-                                    "email": "user@example.com"
-                                }
-                                """
+                        {
+                            "email": "user@example.com"
+                        }
+                        """
                             )
                     )
-            ) @org.springframework.web.bind.annotation.RequestBody ResendConfirmationEmailRequest request) {
+            )
+            @org.springframework.web.bind.annotation.RequestBody ResendConfirmationEmailRequest request) {
         return authenticationService.resendConfirmationEmail(request.getEmail());
     }
 
