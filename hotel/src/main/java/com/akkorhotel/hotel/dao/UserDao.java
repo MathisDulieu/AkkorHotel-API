@@ -63,4 +63,8 @@ public class UserDao {
         return mongoTemplate.exists(new Query(Criteria.where("email").is(email)), USER_COLLECTION);
     }
 
+    public void delete(String userId) {
+        mongoTemplate.remove(new Query(Criteria.where("_id").is(userId)), USER_COLLECTION);
+    }
+
 }

@@ -15,10 +15,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -110,7 +107,8 @@ public class UserController {
     @Operation(
             tags = {"User"},
             summary = "Update user details",
-            description = "Allows an authenticated user to update their email, username, or password."
+            description = "Allows an authenticated user to update their email, username, or password.",
+            security = { @SecurityRequirement(name = "bearerAuth") }
     )
     @ApiResponses({
             @ApiResponse(
@@ -184,6 +182,36 @@ public class UserController {
             @AuthenticationPrincipal User authenticatedUser) {
         return userService.updateUser(request, authenticatedUser);
     }
+
+    @DeleteMapping
+    @Operation(
+            tags = {"User"},
+            summary = "Delete user account",
+            description = "Allows an authenticated user to permanently delete their account.",
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User deleted successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Success Example",
+                                    value = """
+                            {
+                                "status": 200,
+                                "message": "User deleted successfully"
+                            }
+                            """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> deleteUser(@AuthenticationPrincipal User authenticatedUser) {
+        return userService.deleteUser(authenticatedUser.getId());
+    }
+
 
 
 

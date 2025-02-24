@@ -310,5 +310,49 @@ class UserDaoTest {
         assertThat(isUsernameAlreadyUsed).isFalse();
     }
 
+    @Test
+    void shouldDeleteUser() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "id",
+            "username": "username1",
+            "password": "password1",
+            "email": "email1",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "otherId",
+            "username": "username2",
+            "password": "password2",
+            "email": "email2",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        // Act
+        userDao.delete("id");
+
+        // Assert
+        List<Map> savedUsers = mongoTemplate.findAll(Map.class, "USERS");
+        assertThat((Map<String, Object>) savedUsers.getFirst())
+                .containsExactlyInAnyOrderEntriesOf(ofEntries(
+                        entry("_id", "otherId"),
+                        entry("username", "username2"),
+                        entry("email", "email2"),
+                        entry("password", "password2"),
+                        entry("isValidEmail", true),
+                        entry("role", "USER")
+                ));
+
+        assertThat(savedUsers).hasSize(1);
+    }
+
+
 
 }

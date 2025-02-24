@@ -60,14 +60,10 @@ public class UserService {
         return ResponseEntity.ok(singletonMap("message", "User details updated successfully"));
     }
 
-    private void validateRequest(List<String> errors, UpdateUserRequest request) {
-        if (isNull(request.getEmail()) && isNull(request.getUsername()) && isNull(request.getNewPassword())) {
-            errors.add("No values provided for update. Please specify at least one field (email, username, or new password).");
-        }
-    }
+    public ResponseEntity<Map<String, String>> deleteUser(String authenticatedUserId) {
+        userDao.delete(authenticatedUserId);
 
-    public ResponseEntity<Map<String, String>> deleteUser() {
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(singletonMap("message", "User deleted successfully"));
     }
 
     public ResponseEntity<Map<String, String>> setUserProfileImage() {
@@ -84,6 +80,12 @@ public class UserService {
 
     private String getErrorsAsString(List<String> errors) {
         return String.join(" | ", errors);
+    }
+
+    private void validateRequest(List<String> errors, UpdateUserRequest request) {
+        if (isNull(request.getEmail()) && isNull(request.getUsername()) && isNull(request.getNewPassword())) {
+            errors.add("No values provided for update. Please specify at least one field (email, username, or new password).");
+        }
     }
 
     private void validateNewUsername(List<String> errors, String username, User userToUpdate) {

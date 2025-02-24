@@ -24,8 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -123,5 +122,20 @@ class UserControllerTest {
         assertThat(capturedUpdateRequest.getNewPassword()).isEqualTo("newPass456#!");
     }
 
+    @Test
+    void shouldDeleteAuthenticatedUser() throws Exception {
+        // Arrange
+        when(userService.deleteUser(null))
+                .thenReturn(ResponseEntity.ok(singletonMap("message", "User deleted successfully")));
+
+        // Act
+        mockMvc.perform(delete("/private/user")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("User deleted successfully"));
+
+        // Assert
+        verify(userService).deleteUser(null);
+    }
 
 }

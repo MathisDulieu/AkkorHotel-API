@@ -589,4 +589,19 @@ class UserServiceTest {
         assertThat(response.getBody()).isEqualTo(singletonMap("errors", "Username already taken: Please choose a different one. | Invalid email format. | The new password does not meet the required criteria."));
     }
 
+    @Test
+    void shouldDeleteAuthenticatedUser() {
+        // Arrange
+
+        // Act
+        ResponseEntity<Map<String, String>> response = userService.deleteUser("authenticatedUserId");
+
+        // Assert
+        verify(userDao).delete("authenticatedUserId");
+        verifyNoMoreInteractions(userDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("message", "User deleted successfully"));
+    }
+
 }

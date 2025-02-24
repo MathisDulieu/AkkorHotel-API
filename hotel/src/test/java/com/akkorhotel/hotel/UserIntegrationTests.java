@@ -33,8 +33,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -187,6 +186,68 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
                 ));
 
         verify(emailService, times(1)).sendEmail(eq("alice@example.com"), anyString(), anyString());
+    }
+
+    @Test
+    void shouldDeleteAuthenticatedUser() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+                    "username": "username1",
+                    "password": "encodedPassword1",
+                    "email": "email1",
+                    "isValidEmail": true,
+                    "role": "USER"
+                }
+                """, "USERS");
+
+        mongoTemplate.insert("""
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
+                    "username": "username2",
+                    "password": "encodedPassword2",
+                    "email": "email2",
+                    "isValidEmail": true,
+                    "role": "USER"
+                }
+                """, "USERS");
+
+        String token = Jwts.builder()
+                .setSubject("f2cccd2f-5711-4356-a13a-f687dc983ce1")
+                .claim("type", "access")
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
+                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
+                .compact();
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(delete("/private/user")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + token)
+        );
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.message").value("User deleted successfully"));
+                });
+
+        List<Map> users = mongoTemplate.findAll(Map.class, "USERS");
+
+        assertThat(users).hasSize(1);
+
+        assertThat((Map<String, Object>) users.getFirst())
+                .containsAllEntriesOf(ofEntries(
+                        entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce2"),
+                        entry("username", "username2"),
+                        entry("email", "email2"),
+                        entry("password", "encodedPassword2"),
+                        entry("isValidEmail", true),
+                        entry("role", "USER")
+                ));
     }
 
 }
