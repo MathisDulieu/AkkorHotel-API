@@ -47,7 +47,7 @@ public class UserService {
         }
 
         if (!errors.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("errors", getErrorsAsString(errors)));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("errors", userUtils.getErrorsAsString(errors)));
         }
 
         userDao.save(authenticatedUser);
@@ -76,10 +76,6 @@ public class UserService {
 
     public ResponseEntity<Map<String, String>> deleteUserProfileImage() {
         return ResponseEntity.ok().build();
-    }
-
-    private String getErrorsAsString(List<String> errors) {
-        return String.join(" | ", errors);
     }
 
     private void validateRequest(List<String> errors, UpdateUserRequest request) {

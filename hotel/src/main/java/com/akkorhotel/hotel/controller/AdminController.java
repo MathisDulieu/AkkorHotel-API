@@ -1,6 +1,7 @@
 package com.akkorhotel.hotel.controller;
 
 
+import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
@@ -8,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -194,7 +196,9 @@ public class AdminController {
                             "user": {
                                 "id": "60f7b1e2b3e2a81b5cb4c735",
                                 "username": "alice123",
-                                "email": "alice@example.com"
+                                "email": "alice@example.com",
+                                "role": "USER",
+                                "isValidEmail": true
                             }
                         }
                         """
@@ -238,5 +242,145 @@ public class AdminController {
 
         return adminService.getUserById(userId);
     }
+
+    @PutMapping("/user/{userId}")
+    @Operation(
+            tags = {"Admin"},
+            summary = "Update a user's information",
+            description = """
+        Allows an administrator to update a user's details, including username, email, role, and email validation status.
+        
+        ## Notes:
+        - All fields are optional, but at least one must be provided.
+        - Username and email must be **unique**.
+        - The new role must be a **valid value** from the `UserRole` enumeration.
+        - The new values must be **different** from the current ones.
+        """,
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User updated successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Successful User Update",
+                                    value = """
+                                {
+                                    "message": "User with id: 60f7b1e2b3e2a81b5cb4c735 updated successfully"
+                                }
+                                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request or validation errors",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Invalid Username",
+                                            value = """
+                                        {
+                                            "errors": {
+                                                "The provided username is invalid. It must be between 3 and 11 characters long and cannot contain spaces."
+                                            }
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Username Already Taken",
+                                            value = """
+                                        {
+                                            "errors": {
+                                                "The username 'newUser123' is already in use by another account."
+                                            }
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Email Already Used",
+                                            value = """
+                                        {
+                                            "errors": {
+                                                "The email address 'newemail@example.com' is already associated with another account."
+                                            }
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Role",
+                                            value = """
+                                        {
+                                            "errors": {
+                                                "Invalid role: SUPERUSER. Allowed values are: [USER, ADMIN, MODERATOR]"
+                                            }
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Email Verification Unchanged",
+                                            value = """
+                                        {
+                                            "errors": {
+                                                "The email verification status is already set to the provided value. No changes were made."
+                                            }
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "No Values Provided",
+                                            value = """
+                                        {
+                                            "errors": {
+                                                "No values provided for update. Please specify at least one field (email, username, isValidEmail or role)."
+                                            }
+                                        }
+                                        """
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "User Not Found",
+                                    value = """
+                                {
+                                    "error": "User not found"
+                                }
+                                """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> updateUser(
+            @Parameter(description = "The ID of the user to update", example = "f2cccd2f-5711-4356-a13a-f687dc983ce1")
+            @PathVariable String userId,
+
+            @RequestBody(description = "User update request body", required = true, content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "User Update Request",
+                            value = """
+                        {
+                            "username": "newUser123",
+                            "email": "new.email@example.com",
+                            "role": "ADMIN",
+                            "isValidEmail": true
+                        }
+                        """
+                    )
+            )) @org.springframework.web.bind.annotation.RequestBody AdminUpdateUserRequest request) {
+
+        return adminService.updateUser(userId, request);
+    }
+
+
 
 }

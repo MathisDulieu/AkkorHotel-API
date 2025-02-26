@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.singletonMap;
@@ -138,11 +139,14 @@ class UserServiceTest {
                 .isValidEmail(true)
                 .build();
 
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("No values provided for update. Please specify at least one field (email, username, or new password).");
+
         // Act
         ResponseEntity<Map<String, String>> response = userService.updateUser(userRequest, authenticatedUser);
 
         // Assert
-        verifyNoInteractions(userUtils, userDao, passwordEncoder);
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(userDao, passwordEncoder);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("errors", "No values provided for update. Please specify at least one field (email, username, or new password)."));
@@ -165,6 +169,7 @@ class UserServiceTest {
 
         when(userUtils.isInvalidUsername(anyString())).thenReturn(true);
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Invalid username: Must be 3-11 characters and cannot contain spaces.");
 
         // Act
         ResponseEntity<Map<String, String>> response = userService.updateUser(userRequest, authenticatedUser);
@@ -173,6 +178,7 @@ class UserServiceTest {
         InOrder inOrder = inOrder(userUtils, userDao);
         inOrder.verify(userUtils).isInvalidUsername("invalidUsername");
         inOrder.verify(userDao).isUsernameAlreadyUsed("invalidUsername");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("Invalid username: Must be 3-11 characters and cannot contain spaces."));
         inOrder.verifyNoMoreInteractions();
 
         verifyNoInteractions(passwordEncoder);
@@ -200,6 +206,7 @@ class UserServiceTest {
 
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(true);
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Username already taken: Please choose a different one.");
 
         // Act
         ResponseEntity<Map<String, String>> response = userService.updateUser(userRequest, authenticatedUser);
@@ -208,6 +215,7 @@ class UserServiceTest {
         InOrder inOrder = inOrder(userUtils, userDao);
         inOrder.verify(userUtils).isInvalidUsername("alreadyUsedUsername");
         inOrder.verify(userDao).isUsernameAlreadyUsed("alreadyUsedUsername");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("Username already taken: Please choose a different one."));
         inOrder.verifyNoMoreInteractions();
 
         verifyNoInteractions(passwordEncoder);
@@ -235,6 +243,7 @@ class UserServiceTest {
 
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Username cannot be the same as the current one.");
 
         // Act
         ResponseEntity<Map<String, String>> response = userService.updateUser(userRequest, authenticatedUser);
@@ -243,6 +252,7 @@ class UserServiceTest {
         InOrder inOrder = inOrder(userUtils, userDao);
         inOrder.verify(userUtils).isInvalidUsername("oldUsername");
         inOrder.verify(userDao).isUsernameAlreadyUsed("oldUsername");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("Username cannot be the same as the current one."));
         inOrder.verifyNoMoreInteractions();
 
         verifyNoInteractions(passwordEncoder);
@@ -270,6 +280,7 @@ class UserServiceTest {
 
         when(userUtils.isInvalidEmail(anyString())).thenReturn(true);
         when(userDao.isEmailAlreadyUsed(anyString())).thenReturn(false);
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Invalid email format.");
 
         // Act
         ResponseEntity<Map<String, String>> response = userService.updateUser(userRequest, authenticatedUser);
@@ -278,6 +289,7 @@ class UserServiceTest {
         InOrder inOrder = inOrder(userUtils, userDao);
         inOrder.verify(userUtils).isInvalidEmail("invalidEmail");
         inOrder.verify(userDao).isEmailAlreadyUsed("invalidEmail");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("Invalid email format."));
         inOrder.verifyNoMoreInteractions();
 
         verifyNoInteractions(passwordEncoder);
@@ -306,6 +318,7 @@ class UserServiceTest {
 
         when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
         when(userDao.isEmailAlreadyUsed(anyString())).thenReturn(true);
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("This email is already used.");
 
         // Act
         ResponseEntity<Map<String, String>> response = userService.updateUser(userRequest, authenticatedUser);
@@ -314,6 +327,7 @@ class UserServiceTest {
         InOrder inOrder = inOrder(userUtils, userDao);
         inOrder.verify(userUtils).isInvalidEmail("alreadyUsedEmail");
         inOrder.verify(userDao).isEmailAlreadyUsed("alreadyUsedEmail");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("This email is already used."));
         inOrder.verifyNoMoreInteractions();
 
         verifyNoInteractions(passwordEncoder);
@@ -342,6 +356,7 @@ class UserServiceTest {
 
         when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
         when(userDao.isEmailAlreadyUsed(anyString())).thenReturn(false);
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The new email address must be different from the current one.");
 
         // Act
         ResponseEntity<Map<String, String>> response = userService.updateUser(userRequest, authenticatedUser);
@@ -350,6 +365,7 @@ class UserServiceTest {
         InOrder inOrder = inOrder(userUtils, userDao);
         inOrder.verify(userUtils).isInvalidEmail("old.email@gmail.com");
         inOrder.verify(userDao).isEmailAlreadyUsed("old.email@gmail.com");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("The new email address must be different from the current one."));
         inOrder.verifyNoMoreInteractions();
 
         verifyNoInteractions(passwordEncoder);
@@ -382,6 +398,7 @@ class UserServiceTest {
                 .thenReturn(false)
                 .thenReturn(true);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The new password does not meet the required criteria.");
 
         // Act
         ResponseEntity<Map<String, String>> response = userService.updateUser(userRequest, authenticatedUser);
@@ -392,6 +409,7 @@ class UserServiceTest {
         inOrder.verify(passwordEncoder).matches("invalidPassword","oldPassword123#!");
         inOrder.verify(passwordEncoder).matches("oldPassword123#!","oldPassword123#!");
         inOrder.verify(passwordEncoder).encode("invalidPassword");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("The new password does not meet the required criteria."));
         inOrder.verifyNoMoreInteractions();
 
         verifyNoInteractions(userDao);
@@ -423,6 +441,7 @@ class UserServiceTest {
                 .thenReturn(true)
                 .thenReturn(true);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("New password must be different from the old password.");
 
         // Act
         ResponseEntity<Map<String, String>> response = userService.updateUser(userRequest, authenticatedUser);
@@ -432,6 +451,7 @@ class UserServiceTest {
         inOrder.verify(userUtils).isInvalidPassword("oldPassword123#!");
         inOrder.verify(passwordEncoder, times(2)).matches("oldPassword123#!","oldPassword123#!");
         inOrder.verify(passwordEncoder).encode("oldPassword123#!");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("New password must be different from the old password."));
         inOrder.verifyNoMoreInteractions();
 
         verifyNoInteractions(userDao);
@@ -463,6 +483,7 @@ class UserServiceTest {
                 .thenReturn(false)
                 .thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Old password is incorrect.");
 
         // Act
         ResponseEntity<Map<String, String>> response = userService.updateUser(userRequest, authenticatedUser);
@@ -473,6 +494,7 @@ class UserServiceTest {
         inOrder.verify(passwordEncoder).matches("newPassword123#!","oldPassword123#!");
         inOrder.verify(passwordEncoder).matches("incorrectPassword","oldPassword123#!");
         inOrder.verify(passwordEncoder).encode("newPassword123#!");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("Old password is incorrect."));
         inOrder.verifyNoMoreInteractions();
 
         verifyNoInteractions(userDao);
@@ -569,6 +591,7 @@ class UserServiceTest {
                 .thenReturn(false)
                 .thenReturn(true);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Username already taken: Please choose a different one. | Invalid email format. | The new password does not meet the required criteria.");
 
         // Act
         ResponseEntity<Map<String, String>> response = userService.updateUser(userRequest, authenticatedUser);
@@ -583,6 +606,7 @@ class UserServiceTest {
         inOrder.verify(passwordEncoder).matches("notValidPassword","oldPassword123#!");
         inOrder.verify(passwordEncoder).matches("oldPassword123#!","oldPassword123#!");
         inOrder.verify(passwordEncoder).encode("notValidPassword");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("Username already taken: Please choose a different one.", "Invalid email format.", "The new password does not meet the required criteria."));
         inOrder.verifyNoMoreInteractions();
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);

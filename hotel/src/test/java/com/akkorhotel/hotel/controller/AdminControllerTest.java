@@ -2,6 +2,7 @@ package com.akkorhotel.hotel.controller;
 
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
+import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
@@ -21,11 +22,11 @@ import java.util.List;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -163,6 +164,44 @@ class AdminControllerTest {
 
         verify(adminService).getUserById(userIdCaptor.capture());
         assertThat(userIdCaptor.getValue()).isEqualTo("id");
+    }
+
+    @Test
+    void shouldUpdateUser() throws Exception {
+        // Arrange
+        String userId = "id";
+        ArgumentCaptor<String> userIdCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<AdminUpdateUserRequest> requestCaptor = ArgumentCaptor.forClass(AdminUpdateUserRequest.class);
+
+        String requestBody = """
+        {
+            "username": "newUsername",
+            "email": "new.email@example.com",
+            "role": "ADMIN",
+            "isValidEmail": false
+        }
+        """;
+
+        when(adminService.updateUser(anyString(), any(AdminUpdateUserRequest.class)))
+                .thenReturn(ResponseEntity.ok(singletonMap("message", "User with id: " + userId + " updated successfully")));
+
+        // Act
+        mockMvc.perform(put("/private/admin/user/{userId}", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("User with id: id updated successfully"));
+
+        // Assert
+        verify(adminService).updateUser(userIdCaptor.capture(), requestCaptor.capture());
+
+        assertThat(userIdCaptor.getValue()).isEqualTo(userId);
+
+        AdminUpdateUserRequest capturedRequest = requestCaptor.getValue();
+        assertThat(capturedRequest.getUsername()).isEqualTo("newUsername");
+        assertThat(capturedRequest.getEmail()).isEqualTo("new.email@example.com");
+        assertThat(capturedRequest.getRole()).isEqualTo("ADMIN");
+        assertThat(capturedRequest.getIsValidEmail()).isFalse();
     }
 
 }

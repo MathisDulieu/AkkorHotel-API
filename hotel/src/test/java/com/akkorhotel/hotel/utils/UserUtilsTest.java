@@ -12,6 +12,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.MailException;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -212,6 +214,22 @@ class UserUtilsTest {
         inOrder.verifyNoMoreInteractions();
 
         assertThat(response).isEqualTo("Failed to send the registration confirmation email. Please try again later.");
+    }
+
+    @Test
+    void shouldReturnErrorsAsString() {
+        // Arrange
+        List<String> errors = List.of(
+                "error1",
+                "error2",
+                "error3"
+        );
+
+        // Act
+        String stringOfErrors = userUtils.getErrorsAsString(errors);
+
+        // Assert
+        assertThat(stringOfErrors).isEqualTo("error1 | error2 | error3");
     }
 
 }

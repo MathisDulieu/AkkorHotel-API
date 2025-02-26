@@ -1,0 +1,17 @@
+### Update a user - 200
+PUT {{url}}/private/admin/user/userId
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "username": "newUsername",
+  "email": "newEmail@example.com",
+  "role": "ADMIN",
+  "isValidEmail": true
+}
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.mail.MailException;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 import static com.akkorhotel.hotel.configuration.EnvConfiguration.getMailRegisterConfirmationLink;
@@ -29,6 +30,10 @@ public class UserUtils {
 
     public boolean isInvalidUsername(String username) {
         return isNull(username) || username.length() < 3 || username.length() > 11 || username.contains(" ");
+    }
+
+    public String getErrorsAsString(List<String> errors) {
+        return String.join(" | ", errors);
     }
 
     public boolean isInvalidPassword(String password) {
