@@ -353,6 +353,432 @@ class UserDaoTest {
         assertThat(savedUsers).hasSize(1);
     }
 
+    @Test
+    void shouldCountUsersByUsernamePrefix_whenUsersExist() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "id1",
+            "username": "john_doe",
+            "password": "password1",
+            "email": "email1",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
 
+        mongoTemplate.insert("""
+        {
+            "_id": "id2",
+            "username": "john_smith",
+            "password": "password2",
+            "email": "email2",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id3",
+            "username": "username3",
+            "password": "password3",
+            "email": "email3",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        // Act
+        long count = userDao.countUsersByUsernamePrefix("john");
+
+        // Assert
+        assertThat(count).isEqualTo(2);
+    }
+
+    @Test
+    void shouldNotCountAdminUsers_whenTheyHaveMatchingUsernamePrefix() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "id1",
+            "username": "john1",
+            "password": "password1",
+            "email": "email1",
+            "isValidEmail": true,
+            "role": "ADMIN"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id2",
+            "username": "john2",
+            "password": "password2",
+            "email": "email2",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        // Act
+        long count = userDao.countUsersByUsernamePrefix("john");
+
+        // Assert
+        assertThat(count).isEqualTo(1);
+    }
+
+    @Test
+    void shouldReturnZero_whenNoUsersExist() {
+        // Act
+        long count = userDao.countUsersByUsernamePrefix("john");
+
+        // Assert
+        assertThat(count).isEqualTo(0);
+    }
+
+    @Test
+    void shouldReturnAllUsersWithUserRole_whenEmptyPrefixIsSet() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "id1",
+            "username": "john_doe",
+            "password": "password1",
+            "email": "email1",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id2",
+            "username": "john_smith",
+            "password": "password2",
+            "email": "email2",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id3",
+            "username": "username3",
+            "password": "password3",
+            "email": "email3",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        // Act
+        long count = userDao.countUsersByUsernamePrefix("");
+
+        // Assert
+        assertThat(count).isEqualTo(3);
+    }
+
+    @Test
+    void shouldReturnUsersMatchingPrefix() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "id1",
+            "username": "john_doe",
+            "password": "password1",
+            "email": "email1",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id2",
+            "username": "john_smith",
+            "password": "password2",
+            "email": "email2",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id3",
+            "username": "username3",
+            "password": "password3",
+            "email": "email3",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        // Act
+        List<User> users = userDao.searchUsersByUsernamePrefix("john", 0, 10);
+
+        // Assert
+        assertThat(users).hasSize(2);
+        assertThat(users).containsExactlyInAnyOrder(
+                User.builder()
+                        .id("id1")
+                        .username("john_doe")
+                        .email("email1")
+                        .role(null)
+                        .password(null)
+                        .isValidEmail(null)
+                        .build(),
+                User.builder()
+                        .id("id2")
+                        .username("john_smith")
+                        .email("email2")
+                        .role(null)
+                        .password(null)
+                        .isValidEmail(null)
+                        .build()
+        );
+    }
+
+    @Test
+    void shouldReturnPaginatedResults() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "id1",
+            "username": "username1",
+            "password": "password1",
+            "email": "email1",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id2",
+            "username": "username2",
+            "password": "password2",
+            "email": "email2",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id3",
+            "username": "username3",
+            "password": "password3",
+            "email": "email3",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id4",
+            "username": "username4",
+            "password": "password4",
+            "email": "email4",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        // Act
+        List<User> users = userDao.searchUsersByUsernamePrefix("username", 1, 2);
+
+        // Assert
+        assertThat(users).hasSize(2);
+        assertThat(users).containsExactlyInAnyOrder(
+                User.builder()
+                        .id("id3")
+                        .username("username3")
+                        .email("email3")
+                        .role(null)
+                        .password(null)
+                        .isValidEmail(null)
+                        .build(),
+                User.builder()
+                        .id("id4")
+                        .username("username4")
+                        .email("email4")
+                        .role(null)
+                        .password(null)
+                        .isValidEmail(null)
+                        .build()
+        );
+    }
+
+    @Test
+    void shouldReturnUsersSortedAlphabetically() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "id1",
+            "username": "john_zeta",
+            "password": "password1",
+            "email": "email1",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id2",
+            "username": "john_alpha",
+            "password": "password2",
+            "email": "email2",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        // Act
+        List<User> users = userDao.searchUsersByUsernamePrefix("john", 0, 10);
+
+        // Assert
+        assertThat(users).containsExactly(
+                User.builder()
+                        .id("id2")
+                        .username("john_alpha")
+                        .email("email2")
+                        .role(null)
+                        .password(null)
+                        .isValidEmail(null)
+                        .build(),
+                User.builder()
+                        .id("id1")
+                        .username("john_zeta")
+                        .email("email1")
+                        .role(null)
+                        .password(null)
+                        .isValidEmail(null)
+                        .build()
+        );
+    }
+
+    @Test
+    void shouldNotReturnAdminUsers() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "id1",
+            "username": "username1",
+            "password": "password1",
+            "email": "email1",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id2",
+            "username": "username2",
+            "password": "password2",
+            "email": "email2",
+            "isValidEmail": true,
+            "role": "ADMIN"
+        }
+        """, "USERS");
+
+        // Act
+        List<User> users = userDao.searchUsersByUsernamePrefix("username", 0, 10);
+
+        // Assert
+        assertThat(users).containsExactly(
+                User.builder()
+                        .id("id1")
+                        .username("username1")
+                        .email("email1")
+                        .role(null)
+                        .password(null)
+                        .isValidEmail(null)
+                        .build()
+        );
+    }
+
+    @Test
+    void shouldReturnEmptyList_whenNoMatchingUsers() {
+        // Act
+        List<User> users = userDao.searchUsersByUsernamePrefix("nonexistent", 0, 10);
+
+        // Assert
+        assertThat(users).isEmpty();
+    }
+
+    @Test
+    void shouldReturnAllUserWithRoleUsers_whenEmptyPrefixIsSet() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "id1",
+            "username": "alice",
+            "password": "password1",
+            "email": "email1",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id2",
+            "username": "bob",
+            "password": "password2",
+            "email": "email2",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "id3",
+            "username": "charlie",
+            "password": "password3",
+            "email": "email3",
+            "isValidEmail": true,
+            "role": "USER"
+        }
+        """, "USERS");
+
+        // Act
+        List<User> users = userDao.searchUsersByUsernamePrefix("", 0, 10);
+
+        // Assert
+        assertThat(users).hasSize(3);
+        assertThat(users).containsExactlyInAnyOrder(
+                User.builder()
+                        .id("id1")
+                        .username("alice")
+                        .email("email1")
+                        .role(null)
+                        .password(null)
+                        .isValidEmail(null)
+                        .build(),
+                User.builder()
+                        .id("id2")
+                        .username("bob")
+                        .email("email2")
+                        .role(null)
+                        .password(null)
+                        .isValidEmail(null)
+                        .build(),
+                User.builder()
+                        .id("id3")
+                        .username("charlie")
+                        .email("email3")
+                        .role(null)
+                        .password(null)
+                        .isValidEmail(null)
+                        .build()
+        );
+    }
 
 }

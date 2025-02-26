@@ -591,8 +591,6 @@ class UserServiceTest {
 
     @Test
     void shouldDeleteAuthenticatedUser() {
-        // Arrange
-
         // Act
         ResponseEntity<Map<String, String>> response = userService.deleteUser("authenticatedUserId");
 

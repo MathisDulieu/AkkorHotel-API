@@ -197,10 +197,4 @@ class SecurityConfigurationTest extends AbstractContainerBaseTest {
         assertThat(statusCode).isEqualTo(HttpStatus.UNAUTHORIZED.value());
     }
 
-
-
 }
-
-
-
-

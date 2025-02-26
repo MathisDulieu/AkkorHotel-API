@@ -3,12 +3,14 @@ package com.akkorhotel.hotel.dao;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
@@ -65,6 +67,33 @@ public class UserDao {
 
     public void delete(String userId) {
         mongoTemplate.remove(new Query(Criteria.where("_id").is(userId)), USER_COLLECTION);
+    }
+
+    public long countUsersByUsernamePrefix(String keyword) {
+        Query query = new Query(Criteria
+                .where("username").regex("(?i)^" + keyword)
+                .and("role").is(UserRole.USER));
+
+        return mongoTemplate.count(query, User.class, USER_COLLECTION);
+    }
+
+    public List<User> searchUsersByUsernamePrefix(String keyword, int page, int pageSize) {
+        Aggregation aggregation = buildUserSearchAggregation(keyword, page, pageSize);
+        return mongoTemplate.aggregate(aggregation, USER_COLLECTION, User.class).getMappedResults();
+    }
+
+    private Aggregation buildUserSearchAggregation(String keyword, int page, int pageSize) {
+        int offset = page * pageSize;
+
+        return Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("username").regex("(?i)^" + keyword)
+                        .and("role").is(UserRole.USER)),
+                Aggregation.sort(Sort.by(Sort.Direction.ASC, "username")),
+                Aggregation.skip(offset),
+                Aggregation.limit(pageSize),
+                Aggregation.project("username", "email")
+                        .and("_id").as("id")
+        );
     }
 
 }
