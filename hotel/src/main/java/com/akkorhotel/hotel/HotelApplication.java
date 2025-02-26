@@ -20,9 +20,9 @@ public class HotelApplication {
 	}
 
 	@PostConstruct
-	void setUtcTimeZone() {
-		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-		log.info("HotelApplication running in UTC timezone, started at: {}", new Date());
+	void setLocalTimeZone() {
+		TimeZone.setDefault(TimeZone.getTimeZone("Europe/Paris"));
+		log.info("HotelApplication running in Paris timezone, started at: {}", new Date());
 	}
 
 	@Configuration

@@ -3,3 +3,8 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+spring:
+  mail:
+    username: akkorhotel@gmail.com
+    password: password

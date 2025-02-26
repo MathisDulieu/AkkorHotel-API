@@ -248,14 +248,14 @@ public class AdminController {
             tags = {"Admin"},
             summary = "Update a user's information",
             description = """
-        Allows an administrator to update a user's details, including username, email, role, and email validation status.
-        
-        ## Notes:
-        - All fields are optional, but at least one must be provided.
-        - Username and email must be **unique**.
-        - The new role must be a **valid value** from the `UserRole` enumeration.
-        - The new values must be **different** from the current ones.
-        """,
+    Allows an administrator to update a user's details, including username, email, role, and email validation status.
+    
+    ## Notes:
+    - All fields are optional, but at least one must be provided.
+    - Username and email must be **unique**.
+    - The new role must be a **valid value** from the `UserRole` enumeration.
+    - The new values must be **different** from the current ones.
+    """,
             security = {@SecurityRequirement(name = "bearerAuth")}
     )
     @ApiResponses({
@@ -267,10 +267,10 @@ public class AdminController {
                             examples = @ExampleObject(
                                     name = "Successful User Update",
                                     value = """
-                                {
-                                    "message": "User with id: 60f7b1e2b3e2a81b5cb4c735 updated successfully"
-                                }
-                                """
+                            {
+                                "message": "User with id: 60f7b1e2b3e2a81b5cb4c735 updated successfully"
+                            }
+                            """
                             )
                     )
             ),
@@ -283,62 +283,62 @@ public class AdminController {
                                     @ExampleObject(
                                             name = "Invalid Username",
                                             value = """
-                                        {
-                                            "errors": {
-                                                "The provided username is invalid. It must be between 3 and 11 characters long and cannot contain spaces."
-                                            }
-                                        }
-                                        """
+                                    {
+                                        "errors": [
+                                            "The provided username is invalid. It must be between 3 and 11 characters long and cannot contain spaces."
+                                        ]
+                                    }
+                                    """
                                     ),
                                     @ExampleObject(
                                             name = "Username Already Taken",
                                             value = """
-                                        {
-                                            "errors": {
-                                                "The username 'newUser123' is already in use by another account."
-                                            }
-                                        }
-                                        """
+                                    {
+                                        "errors": [
+                                            "The username 'newUser123' is already in use by another account."
+                                        ]
+                                    }
+                                    """
                                     ),
                                     @ExampleObject(
                                             name = "Email Already Used",
                                             value = """
-                                        {
-                                            "errors": {
-                                                "The email address 'newemail@example.com' is already associated with another account."
-                                            }
-                                        }
-                                        """
+                                    {
+                                        "errors": [
+                                            "The email address 'newemail@example.com' is already associated with another account."
+                                        ]
+                                    }
+                                    """
                                     ),
                                     @ExampleObject(
                                             name = "Invalid Role",
                                             value = """
-                                        {
-                                            "errors": {
-                                                "Invalid role: SUPERUSER. Allowed values are: [USER, ADMIN, MODERATOR]"
-                                            }
-                                        }
-                                        """
+                                    {
+                                        "errors": [
+                                            "Invalid role: SUPERUSER. Allowed values are: [USER, ADMIN, MODERATOR]"
+                                        ]
+                                    }
+                                    """
                                     ),
                                     @ExampleObject(
                                             name = "Email Verification Unchanged",
                                             value = """
-                                        {
-                                            "errors": {
-                                                "The email verification status is already set to the provided value. No changes were made."
-                                            }
-                                        }
-                                        """
+                                    {
+                                        "errors": [
+                                            "The email verification status is already set to the provided value. No changes were made."
+                                        ]
+                                    }
+                                    """
                                     ),
                                     @ExampleObject(
                                             name = "No Values Provided",
                                             value = """
-                                        {
-                                            "errors": {
-                                                "No values provided for update. Please specify at least one field (email, username, isValidEmail or role)."
-                                            }
-                                        }
-                                        """
+                                    {
+                                        "errors": [
+                                            "No values provided for update. Please specify at least one field (email, username, isValidEmail or role)."
+                                        ]
+                                    }
+                                    """
                                     )
                             }
                     )
@@ -351,10 +351,10 @@ public class AdminController {
                             examples = @ExampleObject(
                                     name = "User Not Found",
                                     value = """
-                                {
-                                    "error": "User not found"
-                                }
-                                """
+                            {
+                                "error": "User not found"
+                            }
+                            """
                             )
                     )
             )
