@@ -1,13 +1,17 @@
 package com.akkorhotel.hotel.service;
 
 import com.akkorhotel.hotel.dao.UserDao;
+import com.akkorhotel.hotel.model.User;
+import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
+import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.Optional;
 
 import static java.util.Collections.singletonMap;
 import static java.util.Objects.isNull;
@@ -46,8 +50,25 @@ public class AdminService {
         return ResponseEntity.ok(singletonMap("users", response));
     }
 
-    public ResponseEntity<Map<String, String>> getUserById() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, GetUserByIdResponse>> getUserById(String userId) {
+        GetUserByIdResponse response = GetUserByIdResponse.builder().build();
+        Optional<User> optionalUser = userDao.findById(userId);
+
+        if (optionalUser.isEmpty()) {
+            response.setError("User not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", response));
+        }
+
+        User user = optionalUser.get();
+        if (user.getRole().equals(UserRole.ADMIN)) {
+            response.setError("Admin users cannot be retrieved");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(singletonMap("error", response));
+        }
+
+        user.setPassword(null);
+        response.setUser(user);
+
+        return ResponseEntity.ok(singletonMap("user", response));
     }
 
     public ResponseEntity<Map<String, String>> updateUser() {

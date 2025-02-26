@@ -1,7 +1,9 @@
 package com.akkorhotel.hotel.controller;
 
 import com.akkorhotel.hotel.model.User;
+import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
+import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -124,6 +126,43 @@ class AdminControllerTest {
         assertThat(keywordCaptor.getValue()).isEqualTo("");
         assertThat(pageCaptor.getValue()).isEqualTo(0);
         assertThat(pageSizeCaptor.getValue()).isEqualTo(10);
+    }
+
+    @Test
+    void shouldGetUserById() throws Exception {
+        // Arrange
+        ArgumentCaptor<String> userIdCaptor = ArgumentCaptor.forClass(String.class);
+
+        User user = User.builder()
+                .id("id")
+                .username("username")
+                .email("email")
+                .role(UserRole.USER)
+                .isValidEmail(true)
+                .password(null)
+                .build();
+
+        GetUserByIdResponse response = GetUserByIdResponse.builder()
+                .user(user)
+                .build();
+
+        when(adminService.getUserById(anyString()))
+                .thenReturn(ResponseEntity.ok(singletonMap("user", response)));
+
+        // Act & Assert
+        mockMvc.perform(get("/private/admin/user/{userId}", "id")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.user.id").value("id"))
+                .andExpect(jsonPath("$.user.user.username").value("username"))
+                .andExpect(jsonPath("$.user.user.email").value("email"))
+                .andExpect(jsonPath("$.user.user.isValidEmail").value(true))
+                .andExpect(jsonPath("$.user.user.role").value("USER"))
+                .andExpect(jsonPath("$.user.user.password").doesNotExist())
+                .andExpect(jsonPath("$.user.error").doesNotExist());
+
+        verify(adminService).getUserById(userIdCaptor.capture());
+        assertThat(userIdCaptor.getValue()).isEqualTo("id");
     }
 
 }

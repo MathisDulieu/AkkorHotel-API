@@ -2,6 +2,7 @@ package com.akkorhotel.hotel.controller;
 
 
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
+import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,10 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -167,6 +165,78 @@ public class AdminController {
             @RequestParam(required = false, defaultValue = "10") int pageSize) {
 
         return adminService.getAllUsers(keyword, page, pageSize);
+    }
+
+    @GetMapping("/user/{userId}")
+    @Operation(
+            tags = {"Admin"},
+            summary = "Get a user by ID",
+            description = """
+            Retrieves a specific user by their unique ID.
+            
+            ## Responses:
+            - **200 OK**: User found and returned.
+            - **403 FORBIDDEN**: The user is an admin and cannot be retrieved.
+            - **404 NOT FOUND**: No user exists with the given ID.
+            """,
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Successful User Retrieval",
+                                    value = """
+                        {
+                            "user": {
+                                "id": "60f7b1e2b3e2a81b5cb4c735",
+                                "username": "alice123",
+                                "email": "alice@example.com"
+                            }
+                        }
+                        """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Admin users cannot be retrieved",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Forbidden Admin User",
+                                    value = """
+                        {
+                            "error": "Admin users cannot be retrieved"
+                        }
+                        """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "User Not Found",
+                                    value = """
+                        {
+                            "error": "User not found"
+                        }
+                        """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, GetUserByIdResponse>> getUserById(
+            @Parameter(description = "The unique identifier of the user", example = "f2cccd2f-5711-4356-a13a-f687dc983ce1")
+            @PathVariable String userId) {
+
+        return adminService.getUserById(userId);
     }
 
 }

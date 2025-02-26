@@ -137,4 +137,58 @@ public class AdminIntegrationTests {
                 });
     }
 
+    @Test
+    void shouldGetUserById() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
+                    "username": "adminUsername",
+                    "password": "adminPassword",
+                    "email": "admin.email@gmail.com",
+                    "isValidEmail": true,
+                    "role": "ADMIN"
+                }
+                """, "USERS");
+
+        mongoTemplate.insert("""
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+                    "username": "Cobol4Life",
+                    "password": "encodedPassword",
+                    "email": "alex.dupont42@email.com",
+                    "isValidEmail": true,
+                    "role": "USER"
+                }
+                """, "USERS");
+
+        String token = Jwts.builder()
+                .setSubject("f2cccd2f-5711-4356-a13a-f687dc983ce9")
+                .claim("type", "access")
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
+                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
+                .compact();
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(get("/private/admin/user/{userId}", "f2cccd2f-5711-4356-a13a-f687dc983ce1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + token)
+        );
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.user.user.id").value("f2cccd2f-5711-4356-a13a-f687dc983ce1"))
+                            .andExpect(jsonPath("$.user.user.username").value("Cobol4Life"))
+                            .andExpect(jsonPath("$.user.user.email").value("alex.dupont42@email.com"))
+                            .andExpect(jsonPath("$.user.user.isValidEmail").value(true))
+                            .andExpect(jsonPath("$.user.user.role").value("USER"))
+                            .andExpect(jsonPath("$.user.user.password").doesNotExist())
+                            .andExpect(jsonPath("$.user.error").doesNotExist());
+                });
+    }
+
 }

@@ -2,7 +2,9 @@ package com.akkorhotel.hotel.service;
 
 import com.akkorhotel.hotel.dao.UserDao;
 import com.akkorhotel.hotel.model.User;
+import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
+import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -14,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -204,6 +207,109 @@ class AdminServiceTest {
         assertThat(usersResponse.getUsers()).isEqualTo(emptyList());
         assertThat(usersResponse.getTotalPages()).isEqualTo(0);
         assertThat(usersResponse.getError()).isEqualTo("Requested page exceeds the total number of available pages");
+    }
+
+    @Test
+    void shouldReturnUserWithMatchingId() {
+        // Arrange
+        String userId = "anyId";
+
+        User user = User.builder()
+                .id("anyId")
+                .username("username")
+                .email("email")
+                .role(UserRole.USER)
+                .isValidEmail(true)
+                .build();
+
+        when(userDao.findById(anyString())).thenReturn(Optional.of(user));
+
+        // Act
+        ResponseEntity<Map<String, GetUserByIdResponse>> response = adminService.getUserById(userId);
+
+        // Assert
+        verify(userDao).findById("anyId");
+        verifyNoMoreInteractions(userDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        Map<String, GetUserByIdResponse> responseBody = response.getBody();
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.containsKey("user")).isTrue();
+
+        GetUserByIdResponse userResponse = responseBody.get("user");
+        assertThat(userResponse).isNotNull();
+        assertThat(userResponse.getUser()).isEqualTo(
+                User.builder()
+                        .id("anyId")
+                        .username("username")
+                        .email("email")
+                        .role(UserRole.USER)
+                        .isValidEmail(true)
+                        .password(null)
+                        .build()
+        );
+        assertThat(userResponse.getError()).isNull();
+    }
+
+    @Test
+    void shouldReturnNotFound_whenUserDoesNotExist() {
+        // Arrange
+        String userId = "nonExistentId";
+
+        when(userDao.findById(anyString())).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Map<String, GetUserByIdResponse>> response = adminService.getUserById(userId);
+
+        // Assert
+        verify(userDao).findById("nonExistentId");
+        verifyNoMoreInteractions(userDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+
+        Map<String, GetUserByIdResponse> responseBody = response.getBody();
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.containsKey("error")).isTrue();
+
+        GetUserByIdResponse userResponse = responseBody.get("error");
+        assertThat(userResponse).isNotNull();
+        assertThat(userResponse.getError()).isEqualTo("User not found");
+        assertThat(userResponse.getUser()).isNull();
+    }
+
+    @Test
+    void shouldReturnForbidden_whenUserIsAdmin() {
+        // Arrange
+        String userId = "adminId";
+
+        User adminUser = User.builder()
+                .id("adminId")
+                .username("adminUser")
+                .email("admin@email.com")
+                .role(UserRole.ADMIN)
+                .isValidEmail(true)
+                .build();
+
+        when(userDao.findById(anyString())).thenReturn(Optional.of(adminUser));
+
+        // Act
+        ResponseEntity<Map<String, GetUserByIdResponse>> response = adminService.getUserById(userId);
+
+        // Assert
+        verify(userDao).findById("adminId");
+        verifyNoMoreInteractions(userDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        Map<String, GetUserByIdResponse> responseBody = response.getBody();
+        assertThat(responseBody).isNotNull();
+        assertThat(responseBody.containsKey("error")).isTrue();
+
+        GetUserByIdResponse userResponse = responseBody.get("error");
+        assertThat(userResponse).isNotNull();
+        assertThat(userResponse.getError()).isEqualTo("Admin users cannot be retrieved");
+        assertThat(userResponse.getUser()).isNull();
     }
 
 }
