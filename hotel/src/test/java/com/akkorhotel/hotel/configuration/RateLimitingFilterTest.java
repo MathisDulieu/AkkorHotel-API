@@ -1,5 +1,6 @@
 package com.akkorhotel.hotel.configuration;
 
+import com.akkorhotel.hotel.service.RateLimitingService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,7 +23,9 @@ class RateLimitingFilterTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        rateLimitingFilter = new RateLimitingFilter();
+        RateLimitingService rateLimitingService = new RateLimitingService();
+        rateLimitingFilter = new RateLimitingFilter(rateLimitingService);
+
         request = mock(HttpServletRequest.class);
         response = mock(HttpServletResponse.class);
         filterChain = mock(FilterChain.class);
@@ -60,6 +63,5 @@ class RateLimitingFilterTest {
 
         verify(response, times(1)).setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
     }
-
 
 }

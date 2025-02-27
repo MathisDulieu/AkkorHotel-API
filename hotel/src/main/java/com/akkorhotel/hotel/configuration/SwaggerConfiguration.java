@@ -3,10 +3,17 @@ package com.akkorhotel.hotel.configuration;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.tags.Tag;
+import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Collections;
 
 @Configuration
 public class SwaggerConfiguration {
@@ -38,4 +45,18 @@ public class SwaggerConfiguration {
                 .addTagsItem(new Tag().name("Booking").description("Endpoints for hotel booking management"))
                 .addTagsItem(new Tag().name("Admin").description("Endpoints for administrator-specific operations"));
     }
+
+    @Bean
+    public OperationCustomizer globalResponses() {
+        return (operation, handlerMethod) -> {
+            ApiResponses apiResponses = operation.getResponses() != null ? operation.getResponses() : new ApiResponses();
+            apiResponses.addApiResponse("429", new ApiResponse()
+                    .description("Too Many Requests")
+                    .content(new Content()
+                            .addMediaType("application/json", new MediaType().example(Collections.singletonMap("message", "Too many requests. Please try again later.")))));
+            operation.setResponses(apiResponses);
+            return operation;
+        };
+    }
+
 }
