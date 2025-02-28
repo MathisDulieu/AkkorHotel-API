@@ -65,6 +65,7 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
     @AfterEach
     void clean() {
         mongoTemplate.dropCollection("USERS");
+        mongoTemplate.dropCollection("IMAGES");
     }
 
     @Test

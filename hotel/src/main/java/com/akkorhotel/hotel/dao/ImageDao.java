@@ -16,7 +16,7 @@ public class ImageDao {
     private static final String IMAGE_COLLECTION = "IMAGES";
 
     public void save(Image image) {
-            mongoTemplate.save(image, IMAGE_COLLECTION);
+        mongoTemplate.save(image, IMAGE_COLLECTION);
     }
 
     public Optional<Image> findById(String imageId) {
