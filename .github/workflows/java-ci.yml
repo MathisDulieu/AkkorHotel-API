@@ -1,4 +1,4 @@
-name: CI/CD
+name: CI
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
       - '*'
 
 env:
-  IMAGE_NAME: ci-cd
+  CI_NAME: hotel-ci
   MAIN_BRANCH: main
 
 jobs:
@@ -31,19 +31,3 @@ jobs:
 
       - name: Build & Test
         run: mvn -B verify --file hotel/pom.xml
-
-  CD:
-    if: ${{ github.event_name != 'pull_request' }}
-
-    runs-on: ubuntu-latest
-    needs: CI
-
-    permissions:
-      packages: write
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build jar file
-        run: mvn clean install -DskipTests --file hotel/pom.xml
