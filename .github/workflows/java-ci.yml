@@ -16,6 +16,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Navigate to the hotel directory
+        run: cd hotel
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
