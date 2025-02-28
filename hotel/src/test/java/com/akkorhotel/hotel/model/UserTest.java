@@ -13,6 +13,7 @@ class UserTest {
     void shouldBuildUserWithDefaultValues() {
         // Arrange
         User user = User.builder()
+                .id("id")
                 .username("username")
                 .email("email")
                 .password("password")
@@ -21,7 +22,7 @@ class UserTest {
         // Assert
         assertThat(user.getIsValidEmail()).isFalse();
         assertThat(user.getRole()).isEqualTo(UserRole.USER);
-        assertThat(user.getId()).isNull();
+        assertThat(user.getId()).isEqualTo("id");
         assertThat(user.getUsername()).isEqualTo("username");
         assertThat(user.getEmail()).isEqualTo("email");
         assertThat(user.getPassword()).isEqualTo("password");

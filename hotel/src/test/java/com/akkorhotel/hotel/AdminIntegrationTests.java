@@ -1,6 +1,7 @@
 package com.akkorhotel.hotel;
 
 import com.akkorhotel.hotel.service.JwtTokenService;
+import com.akkorhotel.hotel.utils.ImageUtils;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -9,13 +10,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -26,9 +30,9 @@ import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,9 +49,14 @@ public class AdminIntegrationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @MockBean
+    private ImageUtils imageUtils;
+
     @AfterEach
     void clean() {
         mongoTemplate.dropCollection("USERS");
+        mongoTemplate.dropCollection("HOTELS");
+        mongoTemplate.dropCollection("IMAGES");
     }
 
     @Test
@@ -317,6 +326,98 @@ public class AdminIntegrationTests {
                         entry("role", "ADMIN"),
                         entry("profileImageUrl", "https://new-profile-image.png")
                 ));
+    }
+
+    @Test
+    void shouldCreateHotel() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
+            "username": "adminUsername",
+            "password": "adminPassword",
+            "email": "admin@example.com",
+            "isValidEmail": true,
+            "role": "ADMIN",
+            "profileImageUrl": "https://admin-profile-image.jpg"
+        }
+        """, "USERS");
+
+        String token = Jwts.builder()
+                .setSubject("f2cccd2f-5711-4356-a13a-f687dc983ce9")
+                .claim("type", "access")
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
+                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
+                .compact();
+
+        MockMultipartFile mockFile1 = new MockMultipartFile("pictures", "hotel-image1.png", MediaType.IMAGE_PNG_VALUE, "image-content-1".getBytes());
+        MockMultipartFile mockFile2 = new MockMultipartFile("pictures", "hotel-image2.jpg", MediaType.IMAGE_JPEG_VALUE, "image-content-2".getBytes());
+
+        String body = """
+            {
+                "name": "LuxuryHotel",
+                "description": "A five-star experience.",
+                "city": "Paris",
+                "address": "123 Rue de la Paix",
+                "country": "France",
+                "googleMapsUrl": "https://maps.google.com/?q=LuxuryHotel",
+                "state": "Île-de-France",
+                "postalCode": "75001",
+                "amenities": ["POOL", "WIFI"]
+            }
+            """;
+
+        MockMultipartFile requestPart = new MockMultipartFile(
+                "request",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                body.getBytes(StandardCharsets.UTF_8)
+        );
+
+        doReturn("https://mocked-image-url.com/hotel1.jpg").when(imageUtils).uploadImage(mockFile1);
+        doReturn("https://mocked-image-url.com/hotel2.jpg").when(imageUtils).uploadImage(mockFile2);
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(multipart("/private/admin/hotel")
+                .file(requestPart)
+                .file(mockFile1)
+                .file(mockFile2)
+                .with(request -> {
+                    request.setMethod("POST");
+                    return request;
+                })
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+        );
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.message").value("Hotel created successfully"));
+                });
+
+        List<Map> savedHotels = mongoTemplate.findAll(Map.class, "HOTELS");
+
+        assertThat(savedHotels).hasSize(1);
+        assertThat((Map<String, Object>) savedHotels.getFirst())
+                .containsAllEntriesOf(ofEntries(
+                        entry("name", "LuxuryHotel"),
+                        entry("description", "A five-star experience."),
+                        entry("amenities", List.of("POOL", "WIFI")),
+                        entry("picture_list", List.of("https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg")),
+                        entry("location", Map.ofEntries(
+                                entry("address", "123 Rue de la Paix"),
+                                entry("city", "Paris"),
+                                entry("country", "France"),
+                                entry("googleMapsUrl", "https://maps.google.com/?q=LuxuryHotel"),
+                                entry("postalCode", "75001"),
+                                entry("state", "Île-de-France")
+                        ))
+                ));
+
     }
 
 }

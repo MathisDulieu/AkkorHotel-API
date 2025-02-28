@@ -1,0 +1,37 @@
+### Create a hotel - 200
+POST {{url}}/private/admin/hotel
+Content-Type: multipart/form-data; boundary=boundary
+Authorization: Bearer {{token}}
+
+--boundary
+Content-Disposition: form-data; name="request"; filename="request.json"
+Content-Type: application/json
+
+{
+  "name": "LuxuryHotel",
+  "description": "A five-star experience.",
+  "city": "Paris",
+  "address": "123 Rue de la Paix",
+  "country": "France",
+  "googleMapsUrl": "https://maps.google.com/?q=LuxuryHotel",
+  "state": "Île-de-France",
+  "postalCode": "75001",
+  "amenities": ["POOL", "WIFI"]
+}
+--boundary
+Content-Disposition: form-data; name="pictures"; filename="hotel1.jpg"
+Content-Type: image/jpeg
+
+< ../resources/hotel-image1.jpeg
+--boundary
+Content-Disposition: form-data; name="pictures"; filename="hotel2.jpg"
+Content-Type: image/jpeg
+
+< ../resources/hotel-image2.jpeg
+--boundary--
+
+> {%
+    client.test("Check response status", function () {
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status);
+    });
+%}

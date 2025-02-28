@@ -1,22 +1,31 @@
 package com.akkorhotel.hotel.controller;
 
 
+import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
+import com.akkorhotel.hotel.model.request.CreateHotelRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -406,6 +415,182 @@ public class AdminController {
         return adminService.updateUser(userId, request);
     }
 
+    @PostMapping(value = "/hotel", consumes = "multipart/form-data")
+    @Operation(
+            tags = {"Hotel"},
+            summary = "Create a new hotel",
+            description = """
+        Allows an authenticated user to create a new hotel with a name, description, location, amenities, and pictures.
+    
+        ## Notes:
+        - The hotel name must be between **3 and 25 characters** and **cannot contain spaces**.
+        - The description must be **500 characters or fewer**.
+        - The location fields (city, address, country, state, postal code, Google Maps URL) are **mandatory**.
+        - Amenities must be from a **predefined list**.
+        - At least **one valid image** must be uploaded.
+        """,
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Hotel created successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Successful Hotel Creation",
+                                    value = """
+                                {
+                                    "message": "Hotel created successfully"
+                                }
+                                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request or validation errors",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Invalid Hotel Name",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "The hotel name cannot be null or empty",
+                                                "The hotel name must be between 3 and 25 characters long",
+                                                "The hotel name cannot contain spaces"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Description",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "The hotel description must be less than or equal to 500 characters long"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Address",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "The address cannot be null or empty",
+                                                "The address must be less than or equal to 100 characters long"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid City",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "The city cannot be null or empty"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Country",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "The country cannot be null or empty"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid State",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "The state cannot be null or empty",
+                                                "The state cannot be longer than 50 characters"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Postal Code",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "The postal code cannot be null or empty",
+                                                "The postal code cannot be longer than 10 characters"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Google Maps URL",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "The Google Maps URL cannot be null or empty",
+                                                "Google Maps URL must start with 'https://'"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Amenities",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "The amenities list cannot be null or empty",
+                                                "Invalid amenity: SPA_SERVICE"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "No Pictures Provided",
+                                            value = """
+                                        {
+                                            "error": "At least one valid picture is required"
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Image Format",
+                                            value = """
+                                        {
+                                            "error": "Invalid image format. Supported formats: JPG, PNG, WEBP"
+                                        }
+                                        """
+                                    )
+                            }
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> createHotel(
+            @AuthenticationPrincipal User authenticatedUser,
+            @RequestPart(value = "request") @Schema(description = "Hotel creation request in JSON format", example = """
+            {
+                "name": "LuxuryHotel",
+                "description": "A five-star experience.",
+                "city": "Paris",
+                "address": "123 Rue de la Paix",
+                "country": "France",
+                "googleMapsUrl": "https://maps.google.com/?q=LuxuryHotel",
+                "state": "Île-de-France",
+                "postalCode": "75001",
+                "amenities": ["POOL", "WIFI"]
+            }
+            """) @Valid String requestJson,
+            @RequestPart(value = "pictures") List<MultipartFile> pictureList
+    ) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        CreateHotelRequest request = objectMapper.readValue(requestJson, CreateHotelRequest.class);
+        return adminService.createHotel(authenticatedUser, request, pictureList);
+    }
 
 
 }

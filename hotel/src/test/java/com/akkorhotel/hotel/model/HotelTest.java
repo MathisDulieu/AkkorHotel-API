@@ -13,22 +13,21 @@ class HotelTest {
     void shouldBuildHotelWithDefaultValues() {
         // Arrange
         Hotel hotel = Hotel.builder()
+                .id("id")
                 .name("name")
                 .description("description")
+                .location(HotelLocation.builder().id("id").build())
                 .build();
 
         // Assert
         assertThat(hotel.getLocation()).isNotNull();
-        assertThat(hotel.getLocation().getId()).isNull();
-        assertThat(hotel.getLocation().getAddress()).isNull();
-        assertThat(hotel.getLocation().getCity()).isNull();
-        assertThat(hotel.getLocation().getState()).isNull();
-        assertThat(hotel.getLocation().getCountry()).isNull();
-        assertThat(hotel.getLocation().getPostalCode()).isNull();
-        assertThat(hotel.getLocation().getGoogleMapsUrl()).isNull();
+        assertThat(hotel.getLocation().getId()).isEqualTo("id");
 
-        assertThat(hotel.getId()).isNull();
         assertThat(hotel.getPicture_list()).isEqualTo(emptyList());
+        assertThat(hotel.getAmenities()).isEqualTo(emptyList());
+        assertThat(hotel.getRooms()).isEqualTo(emptyList());
+
+        assertThat(hotel.getId()).isEqualTo("id");
         assertThat(hotel.getName()).isEqualTo("name");
         assertThat(hotel.getDescription()).isEqualTo("description");
     }
@@ -40,7 +39,6 @@ class HotelTest {
                 .id("id")
                 .name("name")
                 .description("description")
-                .picture_list(List.of("picture1", "picture2"))
                 .location(HotelLocation.builder()
                         .id("id")
                         .address("address")
@@ -50,6 +48,25 @@ class HotelTest {
                         .postalCode("postalCode")
                         .googleMapsUrl("googleMapUrl")
                         .build())
+                .picture_list(List.of("picture1", "picture2"))
+                .amenities(List.of(HotelAmenities.AIRPORT_SHUTTLE, HotelAmenities.BAR))
+                .rooms(List.of(
+                        HotelRoom.builder()
+                                .id("id1")
+                                .maxOccupancy(5)
+                                .price(256)
+                                .type(HotelRoomType.DELUXE)
+                                .features(List.of(HotelRoomFeatures.FLAT_SCREEN_TV, HotelRoomFeatures.SAFE))
+                                .build(),
+                        HotelRoom.builder()
+                                .id("id2")
+                                .maxOccupancy(2)
+                                .price(150)
+                                .type(HotelRoomType.SINGLE)
+                                .features(List.of(HotelRoomFeatures.ROOM_SERVICE, HotelRoomFeatures.BALCONY))
+                                .build()
+                        )
+                )
                 .build();
 
         // Assert
@@ -66,6 +83,23 @@ class HotelTest {
         assertThat(hotel.getPicture_list()).isEqualTo(List.of("picture1", "picture2"));
         assertThat(hotel.getName()).isEqualTo("name");
         assertThat(hotel.getDescription()).isEqualTo("description");
+        assertThat(hotel.getAmenities()).isEqualTo(List.of(HotelAmenities.AIRPORT_SHUTTLE, HotelAmenities.BAR));
+        assertThat(hotel.getRooms()).isEqualTo(List.of(
+                HotelRoom.builder()
+                        .id("id1")
+                        .maxOccupancy(5)
+                        .price(256)
+                        .type(HotelRoomType.DELUXE)
+                        .features(List.of(HotelRoomFeatures.FLAT_SCREEN_TV, HotelRoomFeatures.SAFE))
+                        .build(),
+                HotelRoom.builder()
+                        .id("id2")
+                        .maxOccupancy(2)
+                        .price(150)
+                        .type(HotelRoomType.SINGLE)
+                        .features(List.of(HotelRoomFeatures.ROOM_SERVICE, HotelRoomFeatures.BALCONY))
+                        .build()
+        ));
     }
 
 }

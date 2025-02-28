@@ -3,9 +3,11 @@ package com.akkorhotel.hotel.controller;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
+import com.akkorhotel.hotel.model.request.CreateHotelRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,8 +17,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -25,8 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -210,6 +213,71 @@ class AdminControllerTest {
         assertThat(capturedRequest.getRole()).isEqualTo("ADMIN");
         assertThat(capturedRequest.getIsValidEmail()).isFalse();
         assertThat(capturedRequest.getProfileImageUrl()).isEqualTo("https://any.jpg");
+    }
+
+    @Test
+    void shouldCreateHotel() throws Exception {
+        // Arrange
+        MockMultipartFile mockFile1 = new MockMultipartFile("pictures", "hotel-image1.png", MediaType.IMAGE_PNG_VALUE, "image-content-1".getBytes());
+        MockMultipartFile mockFile2 = new MockMultipartFile("pictures", "hotel-image2.jpg", MediaType.IMAGE_JPEG_VALUE, "image-content-2".getBytes());
+
+        CreateHotelRequest hotelRequest = new CreateHotelRequest();
+        hotelRequest.setName("MyHotel");
+        hotelRequest.setDescription("A great hotel.");
+        hotelRequest.setCity("Paris");
+        hotelRequest.setAddress("123 Rue de la Paix");
+        hotelRequest.setCountry("France");
+        hotelRequest.setGoogleMapsUrl("https://maps.google.com/?q=MyHotel");
+        hotelRequest.setState("Île-de-France");
+        hotelRequest.setPostalCode("75001");
+        hotelRequest.setAmenities(List.of("POOL", "WIFI"));
+
+        MockMultipartFile requestPart = new MockMultipartFile(
+                "request",
+                "filename.jpg",
+                MediaType.APPLICATION_JSON_VALUE,
+                new ObjectMapper().writeValueAsBytes(hotelRequest)
+        );
+
+        when(adminService.createHotel(any(User.class), any(CreateHotelRequest.class), anyList()))
+                .thenReturn(ResponseEntity.ok(singletonMap("message", "Hotel created successfully")));
+
+        // Act
+        mockMvc.perform(multipart("/private/admin/hotel")
+                        .file(requestPart)
+                        .file(mockFile1)
+                        .file(mockFile2)
+                        .with(request -> {
+                            request.setMethod("POST");
+                            return request;
+                        })
+                        .principal(() -> "authenticatedUser")
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Hotel created successfully"));
+
+        // Assert
+        ArgumentCaptor<CreateHotelRequest> requestCaptor = ArgumentCaptor.forClass(CreateHotelRequest.class);
+        ArgumentCaptor<List<MultipartFile>> fileCaptor = ArgumentCaptor.forClass(List.class);
+
+        verify(adminService).createHotel(any(User.class), requestCaptor.capture(), fileCaptor.capture());
+
+        CreateHotelRequest capturedRequest = requestCaptor.getValue();
+        List<MultipartFile> capturedFiles = fileCaptor.getValue();
+
+        assertThat(capturedRequest.getName()).isEqualTo("MyHotel");
+        assertThat(capturedRequest.getDescription()).isEqualTo("A great hotel.");
+        assertThat(capturedRequest.getCity()).isEqualTo("Paris");
+        assertThat(capturedRequest.getCountry()).isEqualTo("France");
+        assertThat(capturedRequest.getAddress()).isEqualTo("123 Rue de la Paix");
+        assertThat(capturedRequest.getState()).isEqualTo("Île-de-France");
+        assertThat(capturedRequest.getPostalCode()).isEqualTo("75001");
+        assertThat(capturedRequest.getGoogleMapsUrl()).isEqualTo("https://maps.google.com/?q=MyHotel");
+        assertThat(capturedRequest.getAmenities()).isEqualTo(List.of("POOL", "WIFI"));
+
+        assertThat(capturedFiles).hasSize(2);
+        assertThat(capturedFiles.get(0).getOriginalFilename()).isEqualTo("hotel-image1.png");
+        assertThat(capturedFiles.get(1).getOriginalFilename()).isEqualTo("hotel-image2.jpg");
     }
 
 }

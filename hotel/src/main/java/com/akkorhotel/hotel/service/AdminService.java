@@ -1,22 +1,27 @@
 package com.akkorhotel.hotel.service;
 
+import com.akkorhotel.hotel.dao.HotelDao;
 import com.akkorhotel.hotel.dao.UserDao;
-import com.akkorhotel.hotel.model.ImageExtension;
-import com.akkorhotel.hotel.model.User;
-import com.akkorhotel.hotel.model.UserRole;
+import com.akkorhotel.hotel.model.*;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
+import com.akkorhotel.hotel.model.request.CreateHotelRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
+import com.akkorhotel.hotel.utils.ImageUtils;
 import com.akkorhotel.hotel.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.*;
 
 import static java.util.Collections.singletonMap;
 import static java.util.Objects.isNull;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +30,9 @@ public class AdminService {
     private final UserDao userDao;
     private final UserUtils userUtils;
     private final ImageService imageService;
+    private final HotelDao hotelDao;
+    private final UuidProvider uuidProvider;
+    private final ImageUtils imageUtils;
 
     public ResponseEntity<Map<String, GetAllUsersResponse>> getAllUsers(String keyword, int page, int pageSize) {
         GetAllUsersResponse response = GetAllUsersResponse.builder().build();
@@ -103,8 +111,185 @@ public class AdminService {
         return ResponseEntity.ok(singletonMap("message", "User with id: " + userId + " updated successfully"));
     }
 
-    public ResponseEntity<Map<String, String>> createHotel() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, String>> createHotel(User authenticatedUser, CreateHotelRequest request, List<MultipartFile> picture_list) {
+        List<String> errors = new ArrayList<>();
+
+        validateName(errors, request.getName());
+        validateDescription(errors, request.getDescription());
+        validateLocation(errors, request.getCity(), request.getAddress(), request.getCountry(), request.getGoogleMapsUrl(), request.getState(), request.getPostalCode());
+        validateAmenities(errors, request.getAmenities());
+
+        if (!errors.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("errors", userUtils.getErrorsAsString(errors)));
+        }
+
+        List<String> pictureUrlsList = getPictureListUrls(picture_list, authenticatedUser, request.getName());
+        if (isNull(pictureUrlsList)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "At least one valid picture is required"));
+        }
+
+        Hotel hotel = buildHotel(request, pictureUrlsList);
+        hotelDao.save(hotel);
+
+        return ResponseEntity.ok(singletonMap("message", "Hotel created successfully"));
+    }
+
+    private List<String> getPictureListUrls(List<MultipartFile> pictureList, User authenticatedUser, String hotelName) {
+        if (isNull(pictureList) || pictureList.isEmpty()) {
+            return null;
+        }
+
+        List<String> urls = pictureList.stream()
+                .map(file -> processSingleImage(file, authenticatedUser, hotelName))
+                .filter(Objects::nonNull)
+                .collect(toList());
+
+        return urls.isEmpty() ? null : urls;
+    }
+
+    private String processSingleImage(MultipartFile file, User authenticatedUser, String hotelName) {
+        ImageExtension imageExtension = imageService.getImageExtension(file.getOriginalFilename());
+        if (isNull(imageExtension)) {
+            return null;
+        }
+
+        String filename = "hotel-image-" + hotelName + "." + imageExtension.name();
+        String url = uploadImage(file);
+
+        if (url != null) {
+            imageService.saveNewImage(ImageCategory.HOTEL, filename, url, imageExtension, authenticatedUser.getId());
+        }
+
+        return url;
+    }
+
+    private String uploadImage(MultipartFile file) {
+        try {
+            return imageUtils.uploadImage(file);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private Hotel buildHotel(CreateHotelRequest request, List<String> picture_list) {
+        return Hotel.builder()
+                .id(uuidProvider.generateUuid())
+                .location(buildHotelLocation(request))
+                .amenities(getHotelAmenities(request.getAmenities()))
+                .name(request.getName())
+                .description(request.getDescription())
+                .picture_list(picture_list)
+                .build();
+    }
+
+    private List<HotelAmenities> getHotelAmenities(List<String> amenities) {
+        return amenities.stream()
+                .map(String::toUpperCase)
+                .map(HotelAmenities::valueOf)
+                .collect(toList());
+    }
+
+    private HotelLocation buildHotelLocation(CreateHotelRequest request) {
+        return HotelLocation.builder()
+                .id(uuidProvider.generateUuid())
+                .address(request.getAddress())
+                .city(request.getCity())
+                .state(request.getState())
+                .country(request.getCountry())
+                .postalCode(request.getPostalCode())
+                .googleMapsUrl(request.getGoogleMapsUrl())
+                .build();
+    }
+
+    private void validateAmenities(List<String> errors, List<String> amenities) {
+        if (isNull(amenities) || amenities.isEmpty()) {
+            errors.add("The amenities list cannot be null or empty");
+            return;
+        }
+
+        Set<String> validAmenities = Arrays.stream(HotelAmenities.values())
+                .map(Enum::name)
+                .collect(toSet());
+
+        amenities.stream()
+                .filter(amenity -> !validAmenities.contains(amenity))
+                .forEach(invalidAmenity -> errors.add("Invalid amenity: " + invalidAmenity));
+    }
+
+
+    private void validateLocation(List<String> errors, String city, String address, String country, String googleMapsUrl, String state, String postalCode) {
+        validateCity(errors, city);
+        validateAddress(errors, address);
+        validateCountry(errors, country);
+        validateGoogleMapsUrl(errors, googleMapsUrl);
+        validateState(errors, state);
+        validatePostalCode(errors, postalCode);
+    }
+
+    private void validateCity(List<String> errors, String city) {
+        if (isNull(city) || city.trim().isEmpty()) {
+            errors.add("The city cannot be null or empty");
+        }
+    }
+
+    private void validateAddress(List<String> errors, String address) {
+        if (isNull(address) || address.trim().isEmpty()) {
+            errors.add("The address cannot be null or empty");
+        } else if (address.length() > 100) {
+            errors.add("The address must be less than or equal to 100 characters long");
+        }
+    }
+
+    private void validateCountry(List<String> errors, String country) {
+        if (isNull(country) || country.trim().isEmpty()) {
+            errors.add("The country cannot be null or empty");
+        }
+    }
+
+    private void validateGoogleMapsUrl(List<String> errors, String googleMapsUrl) {
+        if (isNull(googleMapsUrl) || googleMapsUrl.trim().isEmpty()) {
+            errors.add("The Google Maps URL cannot be null or empty");
+        } else {
+            if (!googleMapsUrl.startsWith("https://")) {
+                errors.add("Google Maps url must start with 'https://'");
+            }
+        }
+    }
+
+    private void validateState(List<String> errors, String state) {
+        if (isNull(state) || state.trim().isEmpty()) {
+            errors.add("The state cannot be null or empty");
+        } else if (state.length() > 50) {
+            errors.add("The state cannot be longer than 50 characters");
+        }
+    }
+
+    private void validatePostalCode(List<String> errors, String postalCode) {
+        if (isNull(postalCode) || postalCode.trim().isEmpty()) {
+            errors.add("The postal code cannot be null or empty");
+        } else if (postalCode.length() > 10) {
+            errors.add("The postal code cannot be longer than 10 characters");
+        }
+    }
+
+    private void validateDescription(List<String> errors, String description) {
+        if (description.length() > 500) {
+            errors.add("The hotel description must be less than or equal to 500 characters long");
+        }
+    }
+
+    private void validateName(List<String> errors, String name) {
+        if (isNull(name) || name.trim().isEmpty()) {
+            errors.add("The hotel name cannot be null or empty");
+        } else {
+            if (name.length() < 3 || name.length() > 25) {
+                errors.add("The hotel name must be between 3 and 25 characters long");
+            }
+
+            if (name.contains(" ")) {
+                errors.add("The hotel name cannot contain spaces");
+            }
+        }
     }
 
     public ResponseEntity<Map<String, String>> updateHotel() {

@@ -1,12 +1,13 @@
 package com.akkorhotel.hotel.service;
 
+import com.akkorhotel.hotel.dao.HotelDao;
 import com.akkorhotel.hotel.dao.UserDao;
-import com.akkorhotel.hotel.model.ImageExtension;
-import com.akkorhotel.hotel.model.User;
-import com.akkorhotel.hotel.model.UserRole;
+import com.akkorhotel.hotel.model.*;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
+import com.akkorhotel.hotel.model.request.CreateHotelRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
+import com.akkorhotel.hotel.utils.ImageUtils;
 import com.akkorhotel.hotel.utils.UserUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,8 +16,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,6 +47,15 @@ class AdminServiceTest {
 
     @Mock
     private ImageService imageService;
+
+    @Mock
+    private ImageUtils imageUtils;
+
+    @Mock
+    private UuidProvider uuidProvider;
+
+    @Mock
+    private HotelDao hotelDao;
 
     @Test
     void shouldReturnAllUsersWithMatchingPrefix() {
@@ -224,15 +238,8 @@ class AdminServiceTest {
         // Arrange
         String userId = "anyId";
 
-        User user = User.builder()
-                .id("anyId")
-                .username("username")
-                .email("email")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .password("password")
-                .profileImageUrl("profileImageUrl")
-                .build();
+        User user = buildUser("anyId", "username", "email", "password",
+                true, UserRole.USER, "profileImageUrl");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(user));
 
@@ -251,17 +258,11 @@ class AdminServiceTest {
 
         GetUserByIdResponse userResponse = responseBody.get("user");
         assertThat(userResponse).isNotNull();
-        assertThat(userResponse.getUser()).isEqualTo(
-                User.builder()
-                        .id("anyId")
-                        .username("username")
-                        .email("email")
-                        .role(UserRole.USER)
-                        .isValidEmail(true)
-                        .password(null)
-                        .profileImageUrl("profileImageUrl")
-                        .build()
-        );
+
+        User expectedUser = buildUser("anyId", "username", "email", null,
+                true, UserRole.USER, "profileImageUrl");
+
+        assertThat(userResponse.getUser()).isEqualTo(expectedUser);
         assertThat(userResponse.getError()).isNull();
     }
 
@@ -296,15 +297,8 @@ class AdminServiceTest {
         // Arrange
         String userId = "adminId";
 
-        User adminUser = User.builder()
-                .id("adminId")
-                .username("adminUser")
-                .email("admin@email.com")
-                .role(UserRole.ADMIN)
-                .isValidEmail(true)
-                .password("password")
-                .profileImageUrl("profileImageUrl")
-                .build();
+        User adminUser = buildUser("adminId", "adminUser", "admin@email.com", "password",
+                true, UserRole.ADMIN, "profileImageUrl");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(adminUser));
 
@@ -330,22 +324,11 @@ class AdminServiceTest {
     @Test
     void shouldUpdateUser() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("new.email@gmail.com");
-        request.setUsername("newUsername");
-        request.setIsValidEmail(false);
-        request.setRole("ADMIN");
-        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("new.email@gmail.com",
+                "newUsername", false, "ADMIN", "https://newProfileImageUrl.jpg");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://oldProfileImageUrl.png")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://oldProfileImageUrl.png");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -358,15 +341,8 @@ class AdminServiceTest {
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
 
         // Assert
-        User expectedUser = User.builder()
-                .id("id")
-                .username("newUsername")
-                .email("new.email@gmail.com")
-                .password("password")
-                .isValidEmail(false)
-                .role(UserRole.ADMIN)
-                .profileImageUrl("https://newProfileImageUrl.jpg")
-                .build();
+        User expectedUser = buildUser("id", "newUsername", "new.email@gmail.com", "password",
+                false, UserRole.ADMIN, "https://newProfileImageUrl.jpg");
 
         InOrder inOrder = inOrder(userDao, userUtils, imageService);
         inOrder.verify(userDao).findById("id");
@@ -406,15 +382,8 @@ class AdminServiceTest {
         // Arrange
         AdminUpdateUserRequest request = new AdminUpdateUserRequest();
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://oldProfileImageUrl.jpg")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://oldProfileImageUrl.png");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.getErrorsAsString(anyList())).thenReturn("No values provided for update. Please specify at least one field (email, username, isValidEmail, profileImageUrl or role)");
@@ -437,22 +406,11 @@ class AdminServiceTest {
     @Test
     void shouldReturnBadRequest_whenUsernameIsInvalid() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("new.email@gmail.com");
-        request.setUsername("invalidUsername");
-        request.setIsValidEmail(false);
-        request.setRole("ADMIN");
-        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("new.email@gmail.com",
+                "invalidUsername", false, "ADMIN", "https://newProfileImageUrl.jpg");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://oldProfileImageUrl.png")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://oldProfileImageUrl.png");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(true);
@@ -477,22 +435,11 @@ class AdminServiceTest {
     @Test
     void shouldReturnBadRequest_whenUsernameIsAlreadyUsed() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("new.email@gmail.com");
-        request.setUsername("alreadyUsed");
-        request.setIsValidEmail(false);
-        request.setRole("ADMIN");
-        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("new.email@gmail.com",
+                "alreadyUsed", false, "ADMIN", "https://newProfileImageUrl.jpg");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://oldProfileImageUrl.png")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://oldProfileImageUrl.png");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -519,22 +466,11 @@ class AdminServiceTest {
     @Test
     void shouldReturnBadRequest_whenUsernameIsSameAsCurrent() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("new.email@gmail.com");
-        request.setUsername("oldUsername");
-        request.setIsValidEmail(false);
-        request.setRole("ADMIN");
-        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("new.email@gmail.com",
+                "oldUsername", false, "ADMIN", "https://newProfileImageUrl.jpg");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://oldProfileImageUrl.png")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://oldProfileImageUrl.png");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -561,22 +497,11 @@ class AdminServiceTest {
     @Test
     void shouldReturnBadRequest_whenEmailIsInvalid() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("invalidEmail");
-        request.setUsername("newUsername");
-        request.setIsValidEmail(false);
-        request.setRole("ADMIN");
-        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("invalidEmail",
+                "newUsername", false, "ADMIN", "https://newProfileImageUrl.jpg");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://oldProfileImageUrl.png")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://oldProfileImageUrl.png");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -605,22 +530,11 @@ class AdminServiceTest {
     @Test
     void shouldReturnBadRequest_whenEmailIsAlreadyUsed() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("alreadyUsed");
-        request.setUsername("newUsername");
-        request.setIsValidEmail(false);
-        request.setRole("ADMIN");
-        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("alreadyUsed",
+                "newUsername", false, "ADMIN", "https://newProfileImageUrl.jpg");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://oldProfileImageUrl.png")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://oldProfileImageUrl.png");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -651,22 +565,11 @@ class AdminServiceTest {
     @Test
     void shouldReturnBadRequest_whenEmailIsSameAsCurrent() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("old.email@gmail.com");
-        request.setUsername("newUsername");
-        request.setIsValidEmail(false);
-        request.setRole("ADMIN");
-        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("old.email@gmail.com",
+                "newUsername", false, "ADMIN", "https://newProfileImageUrl.jpg");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://oldProfileImageUrl.png")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://oldProfileImageUrl.png");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -697,22 +600,11 @@ class AdminServiceTest {
     @Test
     void shouldReturnBadRequest_whenRoleIsSameAsCurrent() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("new.email@gmail.com");
-        request.setUsername("newUsername");
-        request.setIsValidEmail(false);
-        request.setRole("USER");
-        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("new.email@gmail.com",
+                "newUsername", false, "USER", "https://newProfileImageUrl.jpg");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://oldProfileImageUrl.png")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://oldProfileImageUrl.png");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -743,22 +635,11 @@ class AdminServiceTest {
     @Test
     void shouldReturnBadRequest_whenRoleIsNotValid() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("new.email@gmail.com");
-        request.setUsername("newUsername");
-        request.setIsValidEmail(false);
-        request.setRole("NOT_VALID");
-        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("new.email@gmail.com",
+                "newUsername", false, "NOT_VALID", "https://newProfileImageUrl.jpg");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://oldProfileImageUrl.png")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://oldProfileImageUrl.png");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -789,22 +670,11 @@ class AdminServiceTest {
     @Test
     void shouldReturnBadRequest_whenIsValidEmailValueIsSameAsCurrent() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("new.email@gmail.com");
-        request.setUsername("newUsername");
-        request.setIsValidEmail(true);
-        request.setRole("ADMIN");
-        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("new.email@gmail.com",
+                "newUsername", true, "ADMIN", "https://newProfileImageUrl.jpg");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://oldProfileImageUrl.png")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://any.jpg");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -835,22 +705,11 @@ class AdminServiceTest {
     @Test
     void shouldReturnBadRequest_whenProfileImageUrlDoesNotStartWithHttps() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("new.email@gmail.com");
-        request.setUsername("newUsername");
-        request.setIsValidEmail(false);
-        request.setRole("ADMIN");
-        request.setProfileImageUrl("notValid.png");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("new.email@gmail.com",
+                "newUsername", false, "ADMIN", "notValid.png");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://any.jpg")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://any.jpg");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -881,22 +740,11 @@ class AdminServiceTest {
     @Test
     void shouldReturnBadRequest_whenProfileImageExtensionIsNotValid() {
         // Arrange
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("new.email@gmail.com");
-        request.setUsername("newUsername");
-        request.setIsValidEmail(false);
-        request.setRole("ADMIN");
-        request.setProfileImageUrl("https://notValid");
+        AdminUpdateUserRequest request = buildAdminUpdateUserRequest("new.email@gmail.com",
+                "newUsername", false, "ADMIN", "https://notValid");
 
-        User userToUpdate = User.builder()
-                .id("id")
-                .username("oldUsername")
-                .email("old.email@gmail.com")
-                .password("password")
-                .role(UserRole.USER)
-                .isValidEmail(true)
-                .profileImageUrl("https://any.jpg")
-                .build();
+        User userToUpdate = buildUser("id", "oldUsername", "old.email@gmail.com", "password",
+                true, UserRole.USER, "https://any.jpg");
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -924,4 +772,863 @@ class AdminServiceTest {
         assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The provided URL does not have a valid image format. Please provide a valid image URL"));
     }
 
+    @Test
+    void shouldCreateHotel() throws IOException {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = buildUser("id", "username", null, null, true, UserRole.ADMIN, null);
+
+        when(imageService.getImageExtension("filename1.jpg")).thenReturn(ImageExtension.jpg);
+        when(imageUtils.uploadImage(file1)).thenReturn("https://picture1.jpg");
+        when(imageService.getImageExtension("filename2.png")).thenReturn(ImageExtension.png);
+        when(imageUtils.uploadImage(file2)).thenReturn("https://picture2.png");
+        when(uuidProvider.generateUuid())
+                .thenReturn("hotelId")
+                .thenReturn("hotelLocationId");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        HotelLocation hotelLocation = HotelLocation.builder()
+                .id("hotelLocationId")
+                .address("address")
+                .city("city")
+                .state("state")
+                .country("country")
+                .postalCode("postalCode")
+                .googleMapsUrl("https://googleMapsUrl")
+                .build();
+
+        Hotel expectedHotel = Hotel.builder()
+                .id("hotelId")
+                .name("name")
+                .description("description")
+                .picture_list(List.of("https://picture1.jpg", "https://picture2.png"))
+                .amenities(List.of(HotelAmenities.WIFI, HotelAmenities.BAR))
+                .location(hotelLocation)
+                .rooms(emptyList())
+                .build();
+
+        InOrder inOrder = inOrder(imageService, imageUtils, uuidProvider, hotelDao);
+        inOrder.verify(imageService).getImageExtension("filename1.jpg");
+        inOrder.verify(imageUtils).uploadImage(picture_list.get(0));
+        inOrder.verify(imageService).saveNewImage(ImageCategory.HOTEL, "hotel-image-name.jpg", "https://picture1.jpg", ImageExtension.jpg, "id");
+        inOrder.verify(imageService).getImageExtension("filename2.png");
+        inOrder.verify(imageUtils).uploadImage(picture_list.get(1));
+        inOrder.verify(imageService).saveNewImage(ImageCategory.HOTEL, "hotel-image-name.png", "https://picture2.png", ImageExtension.png, "id");
+        inOrder.verify(uuidProvider, times(2)).generateUuid();
+        inOrder.verify(hotelDao).save(expectedHotel);
+        inOrder.verifyNoMoreInteractions();
+
+        verifyNoInteractions(userUtils);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("message", "Hotel created successfully"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenHotelNameIsNull() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest(null, "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The hotel name cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The hotel name cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The hotel name cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenHotelNameIsEmpty() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("", "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The hotel name cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The hotel name cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The hotel name cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenHotelNameIsTooShort() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("ab", "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The hotel name must be between 3 and 25 characters long");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The hotel name must be between 3 and 25 characters long"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The hotel name must be between 3 and 25 characters long"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenHotelNameIsTooLong() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("ThisHotelNameIsTooLongForExample", "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The hotel name must be between 3 and 25 characters long");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The hotel name must be between 3 and 25 characters long"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The hotel name must be between 3 and 25 characters long"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenHotelNameContainsSpaces() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest(" Spaces ", "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The hotel name cannot contain spaces");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The hotel name cannot contain spaces"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The hotel name cannot contain spaces"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenDescriptionIsTooLong() {
+        // Arrange
+        String description = "This description exceeds the allowed 500-character limit, which violates the established" +
+                " rule that text should not exceed this length. Exceeding the limit may lead to errors or cause the" +
+                " text to be rejected during the saving or validation process, potentially preventing it from being " +
+                "properly stored or processed. It is important to respect this limit to ensure proper system " +
+                "functioning, avoid potential issues, and ensure a smooth user experience during submission. Adhering " +
+                "to such rules helps maintain consistency and efficiency.";
+
+        CreateHotelRequest request = buildCreateHotelRequest("name", description, "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The hotel description must be less than or equal to 500 characters long");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The hotel description must be less than or equal to 500 characters long"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The hotel description must be less than or equal to 500 characters long"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenCityIsNull() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                null, "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The city cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The city cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The city cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenCityIsEmpty() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The city cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The city cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The city cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenAddressIsNull() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", null,
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The address cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The address cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The address cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenAddressIsEmpty() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The address cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The address cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The address cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenAddressIsTooLong() {
+        // Arrange
+        String address = "The address provided is too long and exceeds the allowed character limit. Please shorten " +
+                "the address to fit within the specified length to ensure proper submission.";
+
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", address,
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The address must be less than or equal to 100 characters long");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The address must be less than or equal to 100 characters long"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The address must be less than or equal to 100 characters long"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenCountryIsNull() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", null, "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The country cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The country cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The country cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenCountryIsEmpty() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The country cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The country cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The country cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenGoogleMapsUrlIsNull() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", "postalCode", null,
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The Google Maps URL cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The Google Maps URL cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The Google Maps URL cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenGoogleMapsUrlIsEmpty() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", "postalCode", "",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The Google Maps URL cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The Google Maps URL cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The Google Maps URL cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenGoogleMapsUrlIsInvalid() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", "postalCode", "invalidUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Google Maps url must start with 'https://'");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("Google Maps url must start with 'https://'"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "Google Maps url must start with 'https://'"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenStateIsNull() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", null, "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The state cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The state cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The state cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenStateIsEmpty() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The state cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The state cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The state cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenStateIsTooLong() {
+        // Arrange
+        String state = "This is an example of a too long state. State must be less than 50 characters :)";
+
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", state, "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The state cannot be longer than 50 characters");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The state cannot be longer than 50 characters"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The state cannot be longer than 50 characters"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenPostalCodeIsNull() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", null, "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The postal code cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The postal code cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The postal code cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenPostalCodeIsEmpty() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", "", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The postal code cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The postal code cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The postal code cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenPostalCodeIsTooLong() {
+        // Arrange
+        String postalCode = "10 characters maximum ! :)";
+
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", postalCode, "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The postal code cannot be longer than 10 characters");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The postal code cannot be longer than 10 characters"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The postal code cannot be longer than 10 characters"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenAmenitiesListIsNull() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                null);
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The amenities list cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The amenities list cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The amenities list cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenAmenitiesListIsEmpty() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                emptyList());
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The amenities list cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("The amenities list cannot be null or empty"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The amenities list cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenInvalidAmenityInAmenitiesList() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("INVALID", "BAR"));
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2.png", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        User authenticatedUser = User.builder().build();
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Invalid amenity: INVALID");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("Invalid amenity: INVALID"));
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "Invalid amenity: INVALID"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenPictureListIsEmpty() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        List<MultipartFile> picture_list = emptyList();
+
+        User authenticatedUser = User.builder().build();
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao, userUtils);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "At least one valid picture is required"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenPictureListIsNull() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        User authenticatedUser = User.builder().build();
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, null);
+
+        // Assert
+        verifyNoInteractions(imageService, imageUtils, uuidProvider, hotelDao, userUtils);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "At least one valid picture is required"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenNoValidPictureInPictureList() {
+        // Arrange
+        CreateHotelRequest request = buildCreateHotelRequest("name", "description", "address",
+                "city", "state", "country", "postalCode", "https://googleMapsUrl",
+                List.of("WIFI", "BAR"));
+
+        User authenticatedUser = User.builder().build();
+
+        MockMultipartFile file1 = new MockMultipartFile("file1", "filename1", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        MockMultipartFile file2 = new MockMultipartFile("file2", "filename2", MediaType.IMAGE_PNG_VALUE, new byte[]{1, 2, 3, 4, 5});
+        List<MultipartFile> picture_list = List.of(file1, file2);
+
+        when(imageService.getImageExtension("filename1")).thenReturn(null);
+        when(imageService.getImageExtension("filename2")).thenReturn(null);
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.createHotel(authenticatedUser, request, picture_list);
+
+        // Assert
+        verify(imageService).getImageExtension("filename1");
+        verify(imageService).getImageExtension("filename2");
+        verifyNoMoreInteractions(imageService);
+        verifyNoInteractions(imageUtils, uuidProvider, hotelDao, userUtils);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "At least one valid picture is required"));
+    }
+
+    private AdminUpdateUserRequest buildAdminUpdateUserRequest(String email, String username, boolean isValidEmail, String role, String profileImageUrl) {
+        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
+        request.setEmail(email);
+        request.setUsername(username);
+        request.setIsValidEmail(isValidEmail);
+        request.setRole(role);
+        request.setProfileImageUrl(profileImageUrl);
+
+        return request;
+    }
+
+    private CreateHotelRequest buildCreateHotelRequest(String name, String description, String address, String city,
+                                                       String state, String country, String postalCode,
+                                                       String googleMapsUrl, List<String> amenities) {
+        CreateHotelRequest request = new CreateHotelRequest();
+        request.setName(name);
+        request.setDescription(description);
+        request.setAddress(address);
+        request.setCity(city);
+        request.setState(state);
+        request.setCountry(country);
+        request.setPostalCode(postalCode);
+        request.setGoogleMapsUrl(googleMapsUrl);
+        request.setAmenities(amenities);
+
+        return request;
+    }
+
+    private User buildUser(String id, String username, String email, String password, boolean isValidEmail, UserRole role, String profileImageUrl) {
+        return User.builder()
+                .id(id)
+                .username(username)
+                .email(email)
+                .password(password)
+                .isValidEmail(isValidEmail)
+                .role(role)
+                .profileImageUrl(profileImageUrl)
+                .build();
+    }
 }

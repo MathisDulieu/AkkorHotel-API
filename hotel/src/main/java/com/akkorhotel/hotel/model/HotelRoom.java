@@ -14,23 +14,15 @@ import static java.util.Collections.emptyList;
 @Setter
 @Builder
 @EqualsAndHashCode
-public class Hotel {
+public class HotelRoom {
 
     @Id
     private String id;
-
-    private String name;
-    private String description;
-
-    private HotelLocation location;
+    private HotelRoomType type;
+    private double price;
+    private int maxOccupancy;
 
     @Builder.Default
-    private List<String> picture_list = emptyList();
-
-    @Builder.Default
-    private List<HotelAmenities> amenities = emptyList();
-
-    @Builder.Default
-    private List<HotelRoom> rooms = emptyList();
+    private List<HotelRoomFeatures> features = emptyList();
 
 }
