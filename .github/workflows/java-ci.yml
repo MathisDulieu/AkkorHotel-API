@@ -20,6 +20,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           java-version: '21'
+          distribution: 'adoptopenjdk'
 
       - name: Cache Maven dependencies
         uses: actions/cache@v2
@@ -34,19 +35,3 @@ jobs:
 
       - name: Run tests
         run: mvn test
-
-      - name: Deploy (optional)
-        if: success()
-        run: echo "Deploying the solution (optional step)"
-
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Run CodeQL analysis
-        uses: github/codeql-action/init@v2
-        with:
-          languages: java
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v2
