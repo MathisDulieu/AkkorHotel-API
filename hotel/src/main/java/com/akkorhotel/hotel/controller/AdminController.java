@@ -56,12 +56,14 @@ public class AdminController {
                                         {
                                             "id": "60f7b1e2b3e2a81b5cb4c735",
                                             "username": "alice123",
-                                            "email": "alice@example.com"
+                                            "email": "alice@example.com",
+                                            "profileImageUrl": "https://example.png"
                                         },
                                         {
                                             "id": "60f7b1e2b3e2a81b5cb4c736",
                                             "username": "alicia456",
-                                            "email": "alicia@example.com"
+                                            "email": "alicia@example.com",
+                                            "profileImageUrl": "https://example.png"
                                         }
                                     ],
                                     "totalPages": 3,
@@ -197,6 +199,7 @@ public class AdminController {
                                 "id": "60f7b1e2b3e2a81b5cb4c735",
                                 "username": "alice123",
                                 "email": "alice@example.com",
+                                "profileImageUrl": "https://example.png",
                                 "role": "USER",
                                 "isValidEmail": true
                             }
@@ -339,7 +342,28 @@ public class AdminController {
                                         ]
                                     }
                                     """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Profile Image URL",
+                                            value = """
+                                    {
+                                        "errors": [
+                                            "You must provide a valid URL for the profileImageUrl field."
+                                        ]
+                                    }
+                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Profile Image Extension",
+                                            value = """
+                                    {
+                                        "errors": [
+                                            "The profileImageUrl must have a valid extension (jpg, png, jpeg, svg, webp)."
+                                        ]
+                                    }
+                                    """
                                     )
+
                             }
                     )
             ),
@@ -372,7 +396,8 @@ public class AdminController {
                             "username": "newUser123",
                             "email": "new.email@example.com",
                             "role": "ADMIN",
-                            "isValidEmail": true
+                            "isValidEmail": true,
+                            "profileImageUrl": "https://example.png"
                         }
                         """
                     )

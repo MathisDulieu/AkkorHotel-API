@@ -1,16 +1,21 @@
 package com.akkorhotel.hotel.service;
 
 import com.akkorhotel.hotel.dao.UserDao;
+import com.akkorhotel.hotel.model.ImageCategory;
+import com.akkorhotel.hotel.model.ImageExtension;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.UpdateUserRequest;
 import com.akkorhotel.hotel.model.response.GetAuthenticatedUserResponse;
+import com.akkorhotel.hotel.utils.ImageUtils;
 import com.akkorhotel.hotel.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,12 +30,15 @@ public class UserService {
     private final UserDao userDao;
     private final UserUtils userUtils;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final ImageUtils imageUtils;
+    private final ImageService imageService;
 
     public ResponseEntity<Map<String, GetAuthenticatedUserResponse>> getAuthenticatedUser(User authenticatedUser) {
         GetAuthenticatedUserResponse authenticatedUserResponse = GetAuthenticatedUserResponse.builder()
                 .username(authenticatedUser.getUsername())
                 .email(authenticatedUser.getEmail())
                 .userRole(authenticatedUser.getRole().toString())
+                .profileImageUrl(authenticatedUser.getProfileImageUrl())
                 .build();
 
         return ResponseEntity.ok().body(singletonMap("informations", authenticatedUserResponse));
@@ -66,21 +74,34 @@ public class UserService {
         return ResponseEntity.ok(singletonMap("message", "User deleted successfully"));
     }
 
-    public ResponseEntity<Map<String, String>> setUserProfileImage() {
-        return ResponseEntity.ok().build();
-    }
+    public ResponseEntity<Map<String, String>> uploadUserProfileImage(User authenticatedUser, MultipartFile file) throws IOException {
+        if (file.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "No file uploaded"));
+        }
 
-    public ResponseEntity<Map<String, String>> getUserProfileImage() {
-        return ResponseEntity.ok().build();
-    }
+        ImageExtension extension = imageService.getImageExtension(file.getOriginalFilename());
+        if (extension == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "Unsupported image format"));
+        }
 
-    public ResponseEntity<Map<String, String>> deleteUserProfileImage() {
-        return ResponseEntity.ok().build();
+        String filename = authenticatedUser.getUsername() + "-" + authenticatedUser.getId() + "." + extension.name().toLowerCase();
+
+        String url = imageUtils.uploadImage(file);
+        if (url == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "Failed to upload the image"));
+        }
+
+        imageService.saveNewImage(ImageCategory.USER, filename, url, extension, authenticatedUser.getId());
+
+        authenticatedUser.setProfileImageUrl(url);
+        userDao.save(authenticatedUser);
+
+        return ResponseEntity.ok(singletonMap("message", "Profile image uploaded successfully"));
     }
 
     private void validateRequest(List<String> errors, UpdateUserRequest request) {
         if (isNull(request.getEmail()) && isNull(request.getUsername()) && isNull(request.getNewPassword())) {
-            errors.add("No values provided for update. Please specify at least one field (email, username, or new password).");
+            errors.add("No values provided for update. Please specify at least one field (email, username or new password).");
         }
     }
 

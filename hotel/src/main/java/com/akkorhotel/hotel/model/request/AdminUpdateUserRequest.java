@@ -13,5 +13,6 @@ public class AdminUpdateUserRequest {
     private String username;
     private String email;
     private String role;
+    private String profileImageUrl;
     private Boolean isValidEmail;
 }

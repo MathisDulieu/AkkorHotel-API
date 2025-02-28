@@ -1,10 +1,13 @@
 package com.akkorhotel.hotel.model;
 
+import com.akkorhotel.hotel.configuration.EnvConfiguration;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UserTest {
+
+    private final EnvConfiguration envConfiguration = new EnvConfiguration();
 
     @Test
     void shouldBuildUserWithDefaultValues() {
@@ -22,6 +25,7 @@ class UserTest {
         assertThat(user.getUsername()).isEqualTo("username");
         assertThat(user.getEmail()).isEqualTo("email");
         assertThat(user.getPassword()).isEqualTo("password");
+        assertThat(user.getProfileImageUrl()).isEqualTo(envConfiguration.getDefaultUserProfileImage());
     }
 
     @Test
@@ -34,6 +38,7 @@ class UserTest {
                 .username("username")
                 .email("email")
                 .password("password")
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         // Assert
@@ -43,5 +48,6 @@ class UserTest {
         assertThat(user.getUsername()).isEqualTo("username");
         assertThat(user.getEmail()).isEqualTo("email");
         assertThat(user.getPassword()).isEqualTo("password");
+        assertThat(user.getProfileImageUrl()).isEqualTo("profileImageUrl");
     }
 }

@@ -60,7 +60,8 @@ public class AdminIntegrationTests {
                     "password": "adminPassword",
                     "email": "adminEmail",
                     "isValidEmail": true,
-                    "role": "ADMIN"
+                    "role": "ADMIN",
+                    "profileImageUrl": "https://admin-profile-image.jpg"
                 }
                 """, "USERS");
 
@@ -71,7 +72,8 @@ public class AdminIntegrationTests {
                     "password": "encodedPassword1",
                     "email": "alex.dupont42@email.com",
                     "isValidEmail": true,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image1.jpg"
                 }
                 """, "USERS");
 
@@ -82,7 +84,8 @@ public class AdminIntegrationTests {
                     "password": "encodedPassword2",
                     "email": "sarah.lefevre99@email.com",
                     "isValidEmail": true,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image2.jpg"
                 }
                 """, "USERS");
 
@@ -93,7 +96,8 @@ public class AdminIntegrationTests {
                     "password": "encodedPassword3",
                     "email": "karim.benali75@email.com",
                     "isValidEmail": true,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image3.jpg"
                 }
                 """, "USERS");
 
@@ -104,7 +108,8 @@ public class AdminIntegrationTests {
                     "password": "encodedPassword4",
                     "email": "jeanne.morel@email.com",
                     "isValidEmail": true,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image4.jpg"
                 }
                 """, "USERS");
 
@@ -135,9 +140,11 @@ public class AdminIntegrationTests {
                             .andExpect(jsonPath("$.users.users[0].id").value("f2cccd2f-5711-4356-a13a-f687dc983ce4"))
                             .andExpect(jsonPath("$.users.users[0].username").value("Cobol4Jeanne"))
                             .andExpect(jsonPath("$.users.users[0].email").value("jeanne.morel@email.com"))
+                            .andExpect(jsonPath("$.users.users[0].profileImageUrl").value("https://profile-image4.jpg"))
                             .andExpect(jsonPath("$.users.users[1].id").value("f2cccd2f-5711-4356-a13a-f687dc983ce1"))
                             .andExpect(jsonPath("$.users.users[1].username").value("Cobol4Life1"))
                             .andExpect(jsonPath("$.users.users[1].email").value("alex.dupont42@email.com"))
+                            .andExpect(jsonPath("$.users.users[1].profileImageUrl").value("https://profile-image1.jpg"))
                             .andExpect(jsonPath("$.users.totalPages").value(2))
                             .andExpect(jsonPath("$.users.error").doesNotExist());
                 });
@@ -153,7 +160,8 @@ public class AdminIntegrationTests {
                     "password": "adminPassword",
                     "email": "admin.email@gmail.com",
                     "isValidEmail": true,
-                    "role": "ADMIN"
+                    "role": "ADMIN",
+                    "profileImageUrl": "https://admin-profile-image.jpg"
                 }
                 """, "USERS");
 
@@ -164,7 +172,8 @@ public class AdminIntegrationTests {
                     "password": "encodedPassword",
                     "email": "alex.dupont42@email.com",
                     "isValidEmail": true,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image.jpg"
                 }
                 """, "USERS");
 
@@ -192,6 +201,7 @@ public class AdminIntegrationTests {
                             .andExpect(jsonPath("$.user.user.email").value("alex.dupont42@email.com"))
                             .andExpect(jsonPath("$.user.user.isValidEmail").value(true))
                             .andExpect(jsonPath("$.user.user.role").value("USER"))
+                            .andExpect(jsonPath("$.user.user.profileImageUrl").value("https://profile-image.jpg"))
                             .andExpect(jsonPath("$.user.user.password").doesNotExist())
                             .andExpect(jsonPath("$.user.error").doesNotExist());
                 });
@@ -207,7 +217,8 @@ public class AdminIntegrationTests {
                 "password": "adminPassword",
                 "email": "adminEmail",
                 "isValidEmail": true,
-                "role": "ADMIN"
+                "role": "ADMIN",
+                "profileImageUrl": "https://admin-profile-image.jpg"
             }
             """, "USERS");
 
@@ -218,7 +229,8 @@ public class AdminIntegrationTests {
                 "password": "encodedPassword1",
                 "email": "email1",
                 "isValidEmail": true,
-                "role": "USER"
+                "role": "USER",
+                "profileImageUrl": "https://profile-image1.jpg"
             }
             """, "USERS");
 
@@ -229,7 +241,8 @@ public class AdminIntegrationTests {
                 "password": "encodedPassword2",
                 "email": "email2",
                 "isValidEmail": true,
-                "role": "USER"
+                "role": "USER",
+                "profileImageUrl": "https://profile-image2.jpg"
             }
             """, "USERS");
 
@@ -240,7 +253,8 @@ public class AdminIntegrationTests {
             "username": "newUsername",
             "email": "new.email@example.com",
             "role": "ADMIN",
-            "isValidEmail": false
+            "isValidEmail": false,
+            "profileImageUrl": "https://new-profile-image.png"
         }
         """;
 
@@ -278,7 +292,8 @@ public class AdminIntegrationTests {
                         entry("email", "adminEmail"),
                         entry("password", "adminPassword"),
                         entry("isValidEmail", true),
-                        entry("role", "ADMIN")
+                        entry("role", "ADMIN"),
+                        entry("profileImageUrl", "https://admin-profile-image.jpg")
                 ));
 
         assertThat((Map<String, Object>) savedUsers.get(1))
@@ -288,7 +303,8 @@ public class AdminIntegrationTests {
                         entry("email", "email1"),
                         entry("password", "encodedPassword1"),
                         entry("isValidEmail", true),
-                        entry("role", "USER")
+                        entry("role", "USER"),
+                        entry("profileImageUrl", "https://profile-image1.jpg")
                 ));
 
         assertThat((Map<String, Object>) savedUsers.getLast())
@@ -298,7 +314,8 @@ public class AdminIntegrationTests {
                         entry("email", "new.email@example.com"),
                         entry("password", "encodedPassword2"),
                         entry("isValidEmail", false),
-                        entry("role", "ADMIN")
+                        entry("role", "ADMIN"),
+                        entry("profileImageUrl", "https://new-profile-image.png")
                 ));
     }
 

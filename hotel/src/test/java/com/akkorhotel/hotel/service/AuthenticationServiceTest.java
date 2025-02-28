@@ -1,5 +1,6 @@
 package com.akkorhotel.hotel.service;
 
+import com.akkorhotel.hotel.configuration.EnvConfiguration;
 import com.akkorhotel.hotel.dao.UserDao;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.LoginRequest;
@@ -43,6 +44,9 @@ class AuthenticationServiceTest {
 
     @Mock
     private UserUtils userUtils;
+
+    @Mock
+    private EnvConfiguration envConfiguration;
 
     @Test
     void shouldReturnOkAndRegisterNewUser() {
@@ -97,7 +101,7 @@ class AuthenticationServiceTest {
         verifyNoMoreInteractions(userUtils);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "The provided email is not valid."));
-        verifyNoInteractions(userDao, uuidProvider, passwordEncoder);
+        verifyNoInteractions(userDao, uuidProvider, passwordEncoder, envConfiguration);
     }
 
     @Test
@@ -123,7 +127,7 @@ class AuthenticationServiceTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "The username must be between 3 and 11 characters long and must not contain spaces."));
-        verifyNoInteractions(userDao, uuidProvider, passwordEncoder);
+        verifyNoInteractions(userDao, uuidProvider, passwordEncoder, envConfiguration);
     }
 
     @Test
@@ -151,7 +155,7 @@ class AuthenticationServiceTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "The password does not meet the required criteria."));
-        verifyNoInteractions(userDao, uuidProvider, passwordEncoder);
+        verifyNoInteractions(userDao, uuidProvider, passwordEncoder, envConfiguration);
     }
 
     @Test
@@ -179,7 +183,7 @@ class AuthenticationServiceTest {
         inOrder.verify(userDao).isUserInDatabase(anyString(), eq("alreadyUsed@example.com"));
         inOrder.verifyNoMoreInteractions();
 
-        verifyNoInteractions(uuidProvider, passwordEncoder);
+        verifyNoInteractions(uuidProvider, passwordEncoder, envConfiguration);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "A user with this email or username already exists."));
@@ -210,7 +214,7 @@ class AuthenticationServiceTest {
         inOrder.verify(userDao).isUserInDatabase(eq("alreadyUsed"), any());
         inOrder.verifyNoMoreInteractions();
 
-        verifyNoInteractions(uuidProvider, passwordEncoder);
+        verifyNoInteractions(uuidProvider, passwordEncoder, envConfiguration);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "A user with this email or username already exists."));
@@ -230,19 +234,21 @@ class AuthenticationServiceTest {
         when(userUtils.isInvalidPassword(any())).thenReturn(false);
         when(userDao.isUserInDatabase(anyString(), anyString())).thenReturn(false);
         when(uuidProvider.generateUuid()).thenReturn("anyId");
+        when(envConfiguration.getDefaultUserProfileImage()).thenReturn("anyImage");
         when(userUtils.sendRegisterConfirmationEmail(any())).thenReturn("Failed to send the registration confirmation email. Please try again later.");
 
         // Act
         ResponseEntity<Map<String, String>> response = authenticationService.register(user);
 
         // Assert
-        InOrder inOrder = inOrder(userUtils, userDao, uuidProvider, jwtTokenService, passwordEncoder);
+        InOrder inOrder = inOrder(userUtils, userDao, uuidProvider, jwtTokenService, passwordEncoder, envConfiguration);
         inOrder.verify(userUtils).isInvalidEmail("alice@example.com");
         inOrder.verify(userUtils).isInvalidUsername("alice123");
         inOrder.verify(userUtils).isInvalidPassword("AliceStrongP@ss1!");
         inOrder.verify(userDao).isUserInDatabase("alice123", "alice@example.com");
         inOrder.verify(uuidProvider).generateUuid();
         inOrder.verify(passwordEncoder).encode("AliceStrongP@ss1!");
+        inOrder.verify(envConfiguration).getDefaultUserProfileImage();
         inOrder.verify(userDao).save(user);
         inOrder.verify(userUtils).sendRegisterConfirmationEmail(user);
         inOrder.verifyNoMoreInteractions();

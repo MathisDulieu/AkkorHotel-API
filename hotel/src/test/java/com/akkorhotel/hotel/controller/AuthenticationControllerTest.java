@@ -1,5 +1,6 @@
 package com.akkorhotel.hotel.controller;
 
+import com.akkorhotel.hotel.configuration.EnvConfiguration;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.request.ConfirmEmailRequest;
@@ -40,6 +41,8 @@ class AuthenticationControllerTest {
     @Mock
     private AuthenticationService authenticationService;
 
+    private final EnvConfiguration envConfiguration = new EnvConfiguration();
+
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(authenticationController).build();
@@ -73,6 +76,7 @@ class AuthenticationControllerTest {
         assertThat(capturedRegisterRequest.getPassword()).isEqualTo("TestPassword");
         assertThat(capturedRegisterRequest.getRole()).isEqualTo(UserRole.USER);
         assertThat(capturedRegisterRequest.getId()).isNull();
+        assertThat(capturedRegisterRequest.getProfileImageUrl()).isEqualTo(envConfiguration.getDefaultUserProfileImage());
     }
 
     @Test

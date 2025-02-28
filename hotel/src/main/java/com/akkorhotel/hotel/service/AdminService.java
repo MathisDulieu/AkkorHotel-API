@@ -1,6 +1,7 @@
 package com.akkorhotel.hotel.service;
 
 import com.akkorhotel.hotel.dao.UserDao;
+import com.akkorhotel.hotel.model.ImageExtension;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
@@ -23,9 +24,11 @@ public class AdminService {
 
     private final UserDao userDao;
     private final UserUtils userUtils;
+    private final ImageService imageService;
 
     public ResponseEntity<Map<String, GetAllUsersResponse>> getAllUsers(String keyword, int page, int pageSize) {
         GetAllUsersResponse response = GetAllUsersResponse.builder().build();
+        pageSize = getPageSizeValue(pageSize);
 
         String error = validateRequest(keyword, pageSize, page);
         if (!isNull(error)) {
@@ -88,6 +91,7 @@ public class AdminService {
             validateNewEmail(errors, request.getEmail(), user);
             validateNewRole(errors, request.getRole(), user);
             validateIsValidEmailValue(errors, request.getIsValidEmail(), user);
+            validateNewUserProfileImage(errors, request.getProfileImageUrl(), user);
         }
 
         if (!errors.isEmpty()) {
@@ -131,8 +135,8 @@ public class AdminService {
     }
 
     private void validateRequest(List<String> errors, AdminUpdateUserRequest request) {
-        if (isNull(request.getEmail()) && isNull(request.getUsername()) && isNull(request.getIsValidEmail()) && isNull(request.getRole())) {
-            errors.add("No values provided for update. Please specify at least one field (email, username, isValidEmail or role)");
+        if (isNull(request.getEmail()) && isNull(request.getUsername()) && isNull(request.getIsValidEmail()) && isNull(request.getRole()) && isNull(request.getProfileImageUrl())) {
+            errors.add("No values provided for update. Please specify at least one field (email, username, isValidEmail, profileImageUrl or role)");
         }
     }
 
@@ -151,6 +155,21 @@ public class AdminService {
             }
 
             userToUpdate.setUsername(username);
+        }
+    }
+
+    private void validateNewUserProfileImage(List<String> errors, String profileImageUrl, User userToUpdate) {
+        if (!isNull(profileImageUrl)) {
+            if (!profileImageUrl.startsWith("https://")) {
+                errors.add("The provided URL must start with 'https://'");
+            }
+
+            ImageExtension imageExtension = imageService.getImageExtension(profileImageUrl);
+            if (isNull(imageExtension)) {
+                errors.add("The provided URL does not have a valid image format. Please provide a valid image URL");
+            }
+
+            userToUpdate.setProfileImageUrl(profileImageUrl);
         }
     }
 
@@ -195,6 +214,10 @@ public class AdminService {
 
             user.setIsValidEmail(isValidEmail);
         }
+    }
+
+    private int getPageSizeValue(int pageSize) {
+        return (pageSize == 0) ? 10 : pageSize;
     }
 
 }

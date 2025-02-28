@@ -40,6 +40,7 @@ class UserDaoTest {
                 .username("username")
                 .email("email")
                 .password("password")
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         // Act
@@ -54,7 +55,8 @@ class UserDaoTest {
                         entry("email", "email"),
                         entry("password", "password"),
                         entry("isValidEmail", false),
-                        entry("role", "USER")
+                        entry("role", "USER"),
+                        entry("profileImageUrl", "profileImageUrl")
                 ));
     }
 
@@ -68,7 +70,8 @@ class UserDaoTest {
                     "password": "password",
                     "email": "email",
                     "isValidEmail": true,
-                    "role": "ADMIN"
+                    "role": "ADMIN",
+                    "profileImageUrl": "profileImageUrl"
                 }
                 """, "USERS");
 
@@ -101,7 +104,8 @@ class UserDaoTest {
                 "password": "password",
                 "email": "test@example.com",
                 "isValidEmail": true,
-                "role": "USER"
+                "role": "USER",
+                "profileImageUrl": "profileImageUrl"
             }
             """, "USERS");
 
@@ -122,7 +126,8 @@ class UserDaoTest {
                 "password": "password",
                 "email": "existing.email@example.com",
                 "isValidEmail": true,
-                "role": "USER"
+                "role": "USER",
+                "profileImageUrl": "profileImageUrl"
             }
             """, "USERS");
 
@@ -143,7 +148,8 @@ class UserDaoTest {
                 "password": "password",
                 "email": "email@example.com",
                 "isValidEmail": true,
-                "role": "USER"
+                "role": "USER",
+                "profileImageUrl": "profileImageUrl"
             }
             """, "USERS");
 
@@ -164,7 +170,8 @@ class UserDaoTest {
             "password": "password",
             "email": "test@example.com",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl"
         }
         """, "USERS");
 
@@ -179,6 +186,7 @@ class UserDaoTest {
         assertThat(userOptional.get().getEmail()).isEqualTo("test@example.com");
         assertThat(userOptional.get().getIsValidEmail()).isEqualTo(true);
         assertThat(userOptional.get().getRole()).isEqualTo(UserRole.USER);
+        assertThat(userOptional.get().getProfileImageUrl()).isEqualTo("profileImageUrl");
     }
 
     @Test
@@ -200,7 +208,8 @@ class UserDaoTest {
             "password": "password",
             "email": "test@example.com",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl"
         }
         """, "USERS");
 
@@ -215,6 +224,7 @@ class UserDaoTest {
         assertThat(userOptional.get().getEmail()).isEqualTo("test@example.com");
         assertThat(userOptional.get().getIsValidEmail()).isEqualTo(true);
         assertThat(userOptional.get().getRole()).isEqualTo(UserRole.USER);
+        assertThat(userOptional.get().getProfileImageUrl()).isEqualTo("profileImageUrl");
     }
 
     @Test
@@ -236,7 +246,8 @@ class UserDaoTest {
                 "password": "password",
                 "email": "already.used@example.com",
                 "isValidEmail": true,
-                "role": "USER"
+                "role": "USER",
+                "profileImageUrl": "profileImageUrl"
             }
             """, "USERS");
 
@@ -257,7 +268,8 @@ class UserDaoTest {
                 "password": "password",
                 "email": "email",
                 "isValidEmail": true,
-                "role": "USER"
+                "role": "USER",
+                "profileImageUrl": "profileImageUrl"
             }
             """, "USERS");
 
@@ -278,7 +290,8 @@ class UserDaoTest {
                 "password": "password",
                 "email": "email",
                 "isValidEmail": true,
-                "role": "USER"
+                "role": "USER",
+                "profileImageUrl": "profileImageUrl"
             }
             """, "USERS");
 
@@ -299,7 +312,8 @@ class UserDaoTest {
                 "password": "password",
                 "email": "email",
                 "isValidEmail": true,
-                "role": "USER"
+                "role": "USER",
+                "profileImageUrl": "profileImageUrl"
             }
             """, "USERS");
 
@@ -320,7 +334,8 @@ class UserDaoTest {
             "password": "password1",
             "email": "email1",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl1"
         }
         """, "USERS");
 
@@ -331,7 +346,8 @@ class UserDaoTest {
             "password": "password2",
             "email": "email2",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl2"
         }
         """, "USERS");
 
@@ -347,7 +363,8 @@ class UserDaoTest {
                         entry("email", "email2"),
                         entry("password", "password2"),
                         entry("isValidEmail", true),
-                        entry("role", "USER")
+                        entry("role", "USER"),
+                        entry("profileImageUrl", "profileImageUrl2")
                 ));
 
         assertThat(savedUsers).hasSize(1);
@@ -363,7 +380,8 @@ class UserDaoTest {
             "password": "password1",
             "email": "email1",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl1"
         }
         """, "USERS");
 
@@ -374,7 +392,8 @@ class UserDaoTest {
             "password": "password2",
             "email": "email2",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl2"
         }
         """, "USERS");
 
@@ -385,7 +404,8 @@ class UserDaoTest {
             "password": "password3",
             "email": "email3",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl3"
         }
         """, "USERS");
 
@@ -406,7 +426,8 @@ class UserDaoTest {
             "password": "password1",
             "email": "email1",
             "isValidEmail": true,
-            "role": "ADMIN"
+            "role": "ADMIN",
+            "profileImageUrl": "profileImageUrl1"
         }
         """, "USERS");
 
@@ -417,7 +438,8 @@ class UserDaoTest {
             "password": "password2",
             "email": "email2",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl2"
         }
         """, "USERS");
 
@@ -447,7 +469,8 @@ class UserDaoTest {
             "password": "password1",
             "email": "email1",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl1"
         }
         """, "USERS");
 
@@ -458,7 +481,8 @@ class UserDaoTest {
             "password": "password2",
             "email": "email2",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl2"
         }
         """, "USERS");
 
@@ -469,7 +493,8 @@ class UserDaoTest {
             "password": "password3",
             "email": "email3",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl3"
         }
         """, "USERS");
 
@@ -490,7 +515,8 @@ class UserDaoTest {
             "password": "password1",
             "email": "email1",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl1"
         }
         """, "USERS");
 
@@ -501,7 +527,8 @@ class UserDaoTest {
             "password": "password2",
             "email": "email2",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl2"
         }
         """, "USERS");
 
@@ -512,7 +539,8 @@ class UserDaoTest {
             "password": "password3",
             "email": "email3",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl3"
         }
         """, "USERS");
 
@@ -526,6 +554,7 @@ class UserDaoTest {
                         .id("id1")
                         .username("john_doe")
                         .email("email1")
+                        .profileImageUrl("profileImageUrl1")
                         .role(null)
                         .password(null)
                         .isValidEmail(null)
@@ -534,6 +563,7 @@ class UserDaoTest {
                         .id("id2")
                         .username("john_smith")
                         .email("email2")
+                        .profileImageUrl("profileImageUrl2")
                         .role(null)
                         .password(null)
                         .isValidEmail(null)
@@ -551,7 +581,8 @@ class UserDaoTest {
             "password": "password1",
             "email": "email1",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl1"
         }
         """, "USERS");
 
@@ -562,7 +593,8 @@ class UserDaoTest {
             "password": "password2",
             "email": "email2",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl2"
         }
         """, "USERS");
 
@@ -573,7 +605,8 @@ class UserDaoTest {
             "password": "password3",
             "email": "email3",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl3"
         }
         """, "USERS");
 
@@ -584,7 +617,8 @@ class UserDaoTest {
             "password": "password4",
             "email": "email4",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl4"
         }
         """, "USERS");
 
@@ -598,6 +632,7 @@ class UserDaoTest {
                         .id("id3")
                         .username("username3")
                         .email("email3")
+                        .profileImageUrl("profileImageUrl3")
                         .role(null)
                         .password(null)
                         .isValidEmail(null)
@@ -606,6 +641,7 @@ class UserDaoTest {
                         .id("id4")
                         .username("username4")
                         .email("email4")
+                        .profileImageUrl("profileImageUrl4")
                         .role(null)
                         .password(null)
                         .isValidEmail(null)
@@ -623,7 +659,8 @@ class UserDaoTest {
             "password": "password1",
             "email": "email1",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl1"
         }
         """, "USERS");
 
@@ -634,7 +671,8 @@ class UserDaoTest {
             "password": "password2",
             "email": "email2",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl2"
         }
         """, "USERS");
 
@@ -647,6 +685,7 @@ class UserDaoTest {
                         .id("id2")
                         .username("john_alpha")
                         .email("email2")
+                        .profileImageUrl("profileImageUrl2")
                         .role(null)
                         .password(null)
                         .isValidEmail(null)
@@ -655,6 +694,7 @@ class UserDaoTest {
                         .id("id1")
                         .username("john_zeta")
                         .email("email1")
+                        .profileImageUrl("profileImageUrl1")
                         .role(null)
                         .password(null)
                         .isValidEmail(null)
@@ -672,7 +712,8 @@ class UserDaoTest {
             "password": "password1",
             "email": "email1",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl1"
         }
         """, "USERS");
 
@@ -683,7 +724,8 @@ class UserDaoTest {
             "password": "password2",
             "email": "email2",
             "isValidEmail": true,
-            "role": "ADMIN"
+            "role": "ADMIN",
+            "profileImageUrl": "profileImageUrl2"
         }
         """, "USERS");
 
@@ -696,6 +738,7 @@ class UserDaoTest {
                         .id("id1")
                         .username("username1")
                         .email("email1")
+                        .profileImageUrl("profileImageUrl1")
                         .role(null)
                         .password(null)
                         .isValidEmail(null)
@@ -722,7 +765,8 @@ class UserDaoTest {
             "password": "password1",
             "email": "email1",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl1"
         }
         """, "USERS");
 
@@ -733,7 +777,8 @@ class UserDaoTest {
             "password": "password2",
             "email": "email2",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl2"
         }
         """, "USERS");
 
@@ -744,7 +789,8 @@ class UserDaoTest {
             "password": "password3",
             "email": "email3",
             "isValidEmail": true,
-            "role": "USER"
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl3"
         }
         """, "USERS");
 
@@ -758,6 +804,7 @@ class UserDaoTest {
                         .id("id1")
                         .username("alice")
                         .email("email1")
+                        .profileImageUrl("profileImageUrl1")
                         .role(null)
                         .password(null)
                         .isValidEmail(null)
@@ -766,6 +813,7 @@ class UserDaoTest {
                         .id("id2")
                         .username("bob")
                         .email("email2")
+                        .profileImageUrl("profileImageUrl2")
                         .role(null)
                         .password(null)
                         .isValidEmail(null)
@@ -774,6 +822,7 @@ class UserDaoTest {
                         .id("id3")
                         .username("charlie")
                         .email("email3")
+                        .profileImageUrl("profileImageUrl3")
                         .role(null)
                         .password(null)
                         .isValidEmail(null)

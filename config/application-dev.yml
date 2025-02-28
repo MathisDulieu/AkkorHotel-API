@@ -6,5 +6,18 @@ springdoc:
 
 spring:
   mail:
-    username: akkorhotel@gmail.com
+    username: username
     password: password
+
+akkorhotel:
+  properties:
+    mongo-uri: mongoUri
+    database-name: akkorhotel_local
+    allowed-origins: '*'
+    mail-modified-username: "[PROD] AkkorHotel"
+    mail-register-subject: "[PROD] Confirmez votre inscription à AkkorHotel"
+    mail-register-confirmation-link: https://www.example.com/link
+    cloudinary-api-key: cloudinaryApiKey
+    cloudinary-cloud-name: cloudinaryCloudName
+    cloudinary-api-secret: cloudinaryApiSecret
+    default-user-profile-image: https://i.ibb.co/FbZDPKWx/png-transparent-jedi-avatar-user-profile.png

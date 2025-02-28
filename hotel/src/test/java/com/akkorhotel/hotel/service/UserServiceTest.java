@@ -1,10 +1,13 @@
 package com.akkorhotel.hotel.service;
 
 import com.akkorhotel.hotel.dao.UserDao;
+import com.akkorhotel.hotel.model.ImageCategory;
+import com.akkorhotel.hotel.model.ImageExtension;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.request.UpdateUserRequest;
 import com.akkorhotel.hotel.model.response.GetAuthenticatedUserResponse;
+import com.akkorhotel.hotel.utils.ImageUtils;
 import com.akkorhotel.hotel.utils.UserUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,7 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +45,12 @@ class UserServiceTest {
     @Mock
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Mock
+    private ImageService imageService;
+
+    @Mock
+    private ImageUtils imageUtils;
+
     @Test
     void shouldReturnAuthenticatedUserInformations() {
         // Arrange
@@ -50,6 +61,7 @@ class UserServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         // Act
@@ -60,6 +72,7 @@ class UserServiceTest {
                 .username("username")
                 .email("email")
                 .userRole("USER")
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -82,6 +95,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -106,6 +120,7 @@ class UserServiceTest {
                 .password("encodedPassword")
                 .isValidEmail(false)
                 .role(UserRole.USER)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         InOrder inOrder = inOrder(userUtils, userDao, passwordEncoder);
@@ -137,6 +152,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.getErrorsAsString(anyList())).thenReturn("No values provided for update. Please specify at least one field (email, username, or new password).");
@@ -165,6 +181,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidUsername(anyString())).thenReturn(true);
@@ -202,6 +219,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -239,6 +257,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -276,6 +295,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidEmail(anyString())).thenReturn(true);
@@ -314,6 +334,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
@@ -352,6 +373,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
@@ -391,6 +413,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidPassword(anyString())).thenReturn(true);
@@ -434,6 +457,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidPassword(anyString())).thenReturn(false);
@@ -476,6 +500,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidPassword(anyString())).thenReturn(false);
@@ -521,6 +546,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -545,6 +571,7 @@ class UserServiceTest {
                 .password("encodedPassword")
                 .isValidEmail(false)
                 .role(UserRole.USER)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         InOrder inOrder = inOrder(userUtils, userDao, passwordEncoder);
@@ -580,6 +607,7 @@ class UserServiceTest {
                 .password("oldPassword123#!")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
@@ -624,6 +652,148 @@ class UserServiceTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(singletonMap("message", "User deleted successfully"));
+    }
+
+    @Test
+    void shouldUploadUserProfileImage_whenValidFileProvided() throws IOException {
+        // Arrange
+        User authenticatedUser = User.builder()
+                .id("userId")
+                .username("username")
+                .email("email@gmail.com")
+                .password("Password123#!")
+                .role(UserRole.USER)
+                .isValidEmail(true)
+                .profileImageUrl("https://any.png")
+                .build();
+
+        MultipartFile file = mock(MultipartFile.class);
+
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getOriginalFilename()).thenReturn("profile.jpg");
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.jpg);
+        when(imageUtils.uploadImage(any())).thenReturn("https://example.com/images/username-userId.jpg");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = userService.uploadUserProfileImage(authenticatedUser, file);
+
+        // Assert
+        InOrder inOrder = inOrder(file, imageService, imageUtils);
+        inOrder.verify(file).isEmpty();
+        inOrder.verify(file).getOriginalFilename();
+        inOrder.verify(imageService).getImageExtension("profile.jpg");
+        inOrder.verify(imageUtils).uploadImage(file);
+        inOrder.verify(imageService).saveNewImage(
+                ImageCategory.USER,
+                "username-userId.jpg",
+                "https://example.com/images/username-userId.jpg",
+                ImageExtension.jpg,
+                "userId"
+        );
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(authenticatedUser.getProfileImageUrl()).isEqualTo("https://example.com/images/username-userId.jpg");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("message", "Profile image uploaded successfully"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenFileIsEmpty() throws IOException {
+        // Arrange
+        User authenticatedUser = User.builder()
+                .id("userId")
+                .username("username")
+                .email("email@gmail.com")
+                .password("Password123#!")
+                .role(UserRole.USER)
+                .isValidEmail(true)
+                .profileImageUrl("https://any.png")
+                .build();
+
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(true);
+
+        // Act
+        ResponseEntity<Map<String, String>> response = userService.uploadUserProfileImage(authenticatedUser, file);
+
+        // Assert
+        verify(file).isEmpty();
+        verifyNoMoreInteractions(file);
+        verifyNoInteractions(imageService, imageUtils);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "No file uploaded"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenFileFormatIsUnsupported() throws IOException {
+        // Arrange
+        User authenticatedUser = User.builder()
+                .id("userId")
+                .username("username")
+                .email("email@gmail.com")
+                .password("Password123#!")
+                .role(UserRole.USER)
+                .isValidEmail(true)
+                .profileImageUrl("https://any.png")
+                .build();
+
+        MultipartFile file = mock(MultipartFile.class);
+
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getOriginalFilename()).thenReturn("document.pdf");
+        when(imageService.getImageExtension(anyString())).thenReturn(null);
+
+        // Act
+        ResponseEntity<Map<String, String>> response = userService.uploadUserProfileImage(authenticatedUser, file);
+
+        // Assert
+        InOrder inOrder = inOrder(file, imageService);
+        inOrder.verify(file).isEmpty();
+        inOrder.verify(file).getOriginalFilename();
+        inOrder.verify(imageService).getImageExtension("document.pdf");
+        inOrder.verifyNoMoreInteractions();
+
+        verifyNoInteractions(imageUtils);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "Unsupported image format"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenUploadFails() throws IOException {
+        // Arrange
+        User authenticatedUser = User.builder()
+                .id("userId")
+                .username("username")
+                .email("email@gmail.com")
+                .password("Password123#!")
+                .role(UserRole.USER)
+                .isValidEmail(true)
+                .profileImageUrl("https://any.png")
+                .build();
+
+        MultipartFile file = mock(MultipartFile.class);
+
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getOriginalFilename()).thenReturn("profile.png");
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.png);
+        when(imageUtils.uploadImage(any())).thenReturn(null);
+
+        // Act
+        ResponseEntity<Map<String, String>> response = userService.uploadUserProfileImage(authenticatedUser, file);
+
+        // Assert
+        InOrder inOrder = inOrder(file, imageService, imageUtils);
+        inOrder.verify(file).isEmpty();
+        inOrder.verify(file).getOriginalFilename();
+        inOrder.verify(imageService).getImageExtension("profile.png");
+        inOrder.verify(imageUtils).uploadImage(file);
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "Failed to upload the image"));
     }
 
 }

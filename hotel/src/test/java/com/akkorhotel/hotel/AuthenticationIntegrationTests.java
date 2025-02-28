@@ -1,5 +1,6 @@
 package com.akkorhotel.hotel;
 
+import com.akkorhotel.hotel.configuration.EnvConfiguration;
 import com.akkorhotel.hotel.service.EmailService;
 import com.akkorhotel.hotel.service.JwtTokenService;
 import com.akkorhotel.hotel.service.UuidProvider;
@@ -54,6 +55,9 @@ public class AuthenticationIntegrationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private EnvConfiguration envConfiguration;
+
     @MockBean
     private UuidProvider uuidProvider;
 
@@ -79,7 +83,8 @@ public class AuthenticationIntegrationTests {
                     "password": "password1",
                     "email": "email1",
                     "isValidEmail": false,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image.jpg"
                 }
                 """, "USERS");
 
@@ -120,7 +125,8 @@ public class AuthenticationIntegrationTests {
                         entry("email", "email1"),
                         entry("password", "password1"),
                         entry("isValidEmail", false),
-                        entry("role", "USER")
+                        entry("role", "USER"),
+                        entry("profileImageUrl", "https://profile-image.jpg")
                 ));
 
         assertThat((Map<String, Object>) savedUsers.getLast())
@@ -130,7 +136,8 @@ public class AuthenticationIntegrationTests {
                         entry("email", "alice@example.com"),
                         entry("password", "encodedPassword"),
                         entry("isValidEmail", false),
-                        entry("role", "USER")
+                        entry("role", "USER"),
+                        entry("profileImageUrl", envConfiguration.getDefaultUserProfileImage())
                 ));
 
         verify(emailService, times(1)).sendEmail(eq("alice@example.com"), anyString(), anyString());
@@ -146,7 +153,8 @@ public class AuthenticationIntegrationTests {
                     "password": "encodedPassword",
                     "email": "alice@example.com",
                     "isValidEmail": true,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image.jpg"
                 }
                 """, "USERS");
 
@@ -199,7 +207,8 @@ public class AuthenticationIntegrationTests {
                     "password": "encodedPassword",
                     "email": "alice@example.com",
                     "isValidEmail": false,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image.jpg"
                 }
                 """, "USERS");
 
@@ -242,7 +251,8 @@ public class AuthenticationIntegrationTests {
                         entry("email", "alice@example.com"),
                         entry("password", "encodedPassword"),
                         entry("isValidEmail", true),
-                        entry("role", "USER")
+                        entry("role", "USER"),
+                        entry("profileImageUrl", "https://profile-image.jpg")
                 ));
     }
 
@@ -256,7 +266,8 @@ public class AuthenticationIntegrationTests {
                     "password": "encodedPassword",
                     "email": "alice@example.com",
                     "isValidEmail": false,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image.jpg"
                 }
                 """, "USERS");
 

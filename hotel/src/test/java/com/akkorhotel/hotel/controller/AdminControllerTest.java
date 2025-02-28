@@ -54,8 +54,8 @@ class AdminControllerTest {
         ArgumentCaptor<Integer> pageSizeCaptor = ArgumentCaptor.forClass(Integer.class);
 
         List<User> users = List.of(
-                User.builder().id("id1").username("username1").email("email1").build(),
-                User.builder().id("id2").username("username2").email("email2").build()
+                User.builder().id("id1").username("username1").email("email1").profileImageUrl("profileImageUrl1").build(),
+                User.builder().id("id2").username("username2").email("email2").profileImageUrl("profileImageUrl2").build()
         );
 
         GetAllUsersResponse response = GetAllUsersResponse.builder()
@@ -76,9 +76,11 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.users.users[0].id").value("id1"))
                 .andExpect(jsonPath("$.users.users[0].username").value("username1"))
                 .andExpect(jsonPath("$.users.users[0].email").value("email1"))
+                .andExpect(jsonPath("$.users.users[0].profileImageUrl").value("profileImageUrl1"))
                 .andExpect(jsonPath("$.users.users[1].id").value("id2"))
                 .andExpect(jsonPath("$.users.users[1].username").value("username2"))
                 .andExpect(jsonPath("$.users.users[1].email").value("email2"))
+                .andExpect(jsonPath("$.users.users[1].profileImageUrl").value("profileImageUrl2"))
                 .andExpect(jsonPath("$.users.totalPages").value(1))
                 .andExpect(jsonPath("$.users.error").doesNotExist());
 
@@ -97,8 +99,8 @@ class AdminControllerTest {
         ArgumentCaptor<Integer> pageSizeCaptor = ArgumentCaptor.forClass(Integer.class);
 
         List<User> users = List.of(
-                User.builder().id("id1").username("username1").email("email1").build(),
-                User.builder().id("id2").username("username2").email("email2").build()
+                User.builder().id("id1").username("username1").email("email1").profileImageUrl("profileImageUrl1").build(),
+                User.builder().id("id2").username("username2").email("email2").profileImageUrl("profileImageUrl2").build()
         );
 
         GetAllUsersResponse response = GetAllUsersResponse.builder()
@@ -116,9 +118,11 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.users.users[0].id").value("id1"))
                 .andExpect(jsonPath("$.users.users[0].username").value("username1"))
                 .andExpect(jsonPath("$.users.users[0].email").value("email1"))
+                .andExpect(jsonPath("$.users.users[0].profileImageUrl").value("profileImageUrl1"))
                 .andExpect(jsonPath("$.users.users[1].id").value("id2"))
                 .andExpect(jsonPath("$.users.users[1].username").value("username2"))
                 .andExpect(jsonPath("$.users.users[1].email").value("email2"))
+                .andExpect(jsonPath("$.users.users[1].profileImageUrl").value("profileImageUrl2"))
                 .andExpect(jsonPath("$.users.totalPages").value(1))
                 .andExpect(jsonPath("$.users.error").doesNotExist());;
 
@@ -141,6 +145,7 @@ class AdminControllerTest {
                 .role(UserRole.USER)
                 .isValidEmail(true)
                 .password(null)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         GetUserByIdResponse response = GetUserByIdResponse.builder()
@@ -160,6 +165,7 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.user.user.isValidEmail").value(true))
                 .andExpect(jsonPath("$.user.user.role").value("USER"))
                 .andExpect(jsonPath("$.user.user.password").doesNotExist())
+                .andExpect(jsonPath("$.user.user.profileImageUrl").value("profileImageUrl"))
                 .andExpect(jsonPath("$.user.error").doesNotExist());
 
         verify(adminService).getUserById(userIdCaptor.capture());
@@ -178,7 +184,8 @@ class AdminControllerTest {
             "username": "newUsername",
             "email": "new.email@example.com",
             "role": "ADMIN",
-            "isValidEmail": false
+            "isValidEmail": false,
+            "profileImageUrl": "https://any.jpg"
         }
         """;
 
@@ -202,6 +209,7 @@ class AdminControllerTest {
         assertThat(capturedRequest.getEmail()).isEqualTo("new.email@example.com");
         assertThat(capturedRequest.getRole()).isEqualTo("ADMIN");
         assertThat(capturedRequest.getIsValidEmail()).isFalse();
+        assertThat(capturedRequest.getProfileImageUrl()).isEqualTo("https://any.jpg");
     }
 
 }

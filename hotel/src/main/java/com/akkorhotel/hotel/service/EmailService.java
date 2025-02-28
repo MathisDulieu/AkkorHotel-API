@@ -1,5 +1,6 @@
 package com.akkorhotel.hotel.service;
 
+import com.akkorhotel.hotel.configuration.EnvConfiguration;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -10,21 +11,20 @@ import org.springframework.stereotype.Service;
 
 import java.io.UnsupportedEncodingException;
 
-import static com.akkorhotel.hotel.configuration.EnvConfiguration.getAppEmail;
-import static com.akkorhotel.hotel.configuration.EnvConfiguration.getMailModifiedUsername;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
     private final JavaMailSender javaMailSender;
+    private final EnvConfiguration envConfiguration;
 
     public void sendEmail(String to, String subject, String body) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "utf-8");
 
-            helper.setFrom(getAppEmail(), getMailModifiedUsername());
+            helper.setFrom(envConfiguration.getAppEmail(), envConfiguration.getMailModifiedUsername());
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body + getEmailSignature(), true);

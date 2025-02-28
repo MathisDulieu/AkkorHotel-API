@@ -12,4 +12,5 @@ public class GetAuthenticatedUserResponse {
     private String username;
     private String email;
     private String userRole;
+    private String profileImageUrl;
 }

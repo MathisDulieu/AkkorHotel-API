@@ -1,0 +1,59 @@
+{
+  "properties": [
+    {
+      "name": "akkorhotel.properties.mongo-uri",
+      "type": "java.lang.String",
+      "description": "The connection URI for the MongoDB database."
+    },
+    {
+      "name": "akkorhotel.properties.database-name",
+      "type": "java.lang.String",
+      "description": "The name of the database used by the application."
+    },
+    {
+      "name": "akkorhotel.properties.allowed-origins",
+      "type": "java.lang.String",
+      "description": "A list of allowed origins for CORS requests."
+    },
+    {
+      "name": "akkorhotel.properties.mail-modified-username",
+      "type": "java.lang.String",
+      "description": "The subject line for emails notifying users about username changes."
+    },
+    {
+      "name": "akkorhotel.properties.mail-register-subject",
+      "type": "java.lang.String",
+      "description": "The subject line for registration confirmation emails."
+    },
+    {
+      "name": "akkorhotel.properties.mail-register-confirmation-link",
+      "type": "java.lang.String",
+      "description": "The URL template for the registration confirmation link sent in emails."
+    },
+    {
+      "name": "akkorhotel.properties.cloudinary-api-key",
+      "type": "java.lang.String",
+      "description": "The API key for Cloudinary used to upload and manage images."
+    },
+    {
+      "name": "akkorhotel.properties.cloudinary-cloud-name",
+      "type": "java.lang.String",
+      "description": "The Cloudinary cloud name associated with the account."
+    },
+    {
+      "name": "akkorhotel.properties.cloudinary-api-secret",
+      "type": "java.lang.String",
+      "description": "The secret API key for Cloudinary authentication."
+    },
+    {
+      "name": "akkorhotel.properties.default-user-profile-image",
+      "type": "java.lang.String",
+      "description": "The URL of the default profile image for new users."
+    },
+    {
+      "name": "akkorhotel.properties.app-email",
+      "type": "java.lang.String",
+      "description": "The email address used by the application for sending system notifications."
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 package com.akkorhotel.hotel.service;
 
+import com.akkorhotel.hotel.configuration.EnvConfiguration;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,9 @@ class EmailServiceTest {
     @Mock
     private MimeMessage mimeMessage;
 
+    @Mock
+    private EnvConfiguration envConfiguration;
+
     @Test
     void shouldSendEmail() {
         // Arrange
@@ -32,6 +36,8 @@ class EmailServiceTest {
         String body = "Test Body";
 
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(envConfiguration.getAppEmail()).thenReturn("appEmail");
+        when(envConfiguration.getMailModifiedUsername()).thenReturn("mailModifiedUsername");
 
         // Act
         emailService.sendEmail(to, subject, body);
@@ -48,6 +54,8 @@ class EmailServiceTest {
         String body = "Test Body";
 
         when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(envConfiguration.getAppEmail()).thenReturn("appEmail");
+        when(envConfiguration.getMailModifiedUsername()).thenReturn("mailModifiedUsername");
         doThrow(new MailSendException("SMTP error")).when(javaMailSender).send(any(MimeMessage.class));
 
         // Act & Assert

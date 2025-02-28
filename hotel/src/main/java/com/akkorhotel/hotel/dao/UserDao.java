@@ -91,7 +91,7 @@ public class UserDao {
                 Aggregation.sort(Sort.by(Sort.Direction.ASC, "username")),
                 Aggregation.skip(offset),
                 Aggregation.limit(pageSize),
-                Aggregation.project("username", "email")
+                Aggregation.project("username", "email", "profileImageUrl")
                         .and("_id").as("id")
         );
     }

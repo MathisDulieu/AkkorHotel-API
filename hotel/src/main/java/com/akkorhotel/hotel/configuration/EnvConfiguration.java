@@ -1,38 +1,34 @@
 package com.akkorhotel.hotel.configuration;
 
-import org.springframework.context.annotation.Configuration;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-import static java.util.Objects.isNull;
+import java.util.Map;
 
-@Configuration
+@Getter
+@Setter
+@Component
+@ConfigurationProperties(prefix = "akkorhotel.properties")
 public class EnvConfiguration {
+    private String mongoUri;
+    private String databaseName;
+    private String allowedOrigins;
+    private String mailModifiedUsername;
+    private String mailRegisterSubject;
+    private String mailRegisterConfirmationLink;
+    private String cloudinaryApiKey;
+    private String cloudinaryCloudName;
+    private String cloudinaryApiSecret;
+    private String defaultUserProfileImage;
+    private String appEmail;
 
-    public static String getMongoUri() {
-        return isNull(System.getenv("MONGO_URI")) ? "mongodb://localhost:27017" : System.getenv("MONGO_URI");
+    public Map<String, String> getCloudinaryConfig() {
+        return Map.of(
+                "cloud_name", cloudinaryCloudName,
+                "api_key", cloudinaryApiKey,
+                "api_secret", cloudinaryApiSecret
+        );
     }
-
-    public static String getDatabaseName() {
-        return isNull(System.getenv("DATABASE_NAME")) ? "akkorhotel_local" : System.getenv("DATABASE_NAME");
-    }
-
-    public static String getAllowedOrigins() {
-        return isNull(System.getenv("ALLOWED_ORIGINS")) ? "*" : System.getenv("ALLOWED_ORIGINS");
-    }
-
-    public static String getAppEmail() {
-        return isNull(System.getenv("APP_EMAIL")) ? "akkorhotel@gmail.com" : System.getenv("APP_EMAIL");
-    }
-
-    public static String getMailModifiedUsername() {
-        return isNull(System.getenv("MAIL_MODIFIED_USERNAME")) ? "AkkorHotel" : System.getenv("MAIL_MODIFIED_USERNAME");
-    }
-
-    public static String getMailRegisterSubject() {
-        return isNull(System.getenv("MAIL_REGISTER_SUBJECT")) ? "Confirmez votre inscription à AkkorHotel" : System.getenv("MAIL_REGISTER_SUBJECT");
-    }
-
-    public static String getMailRegisterConfirmationLink() {
-        return isNull(System.getenv("MAIL_REGISTER_CONFIRMATION_LINK")) ? "https://www.example.com/link" : System.getenv("MAIL_REGISTER_CONFIRMATION_LINK");
-    }
-
 }

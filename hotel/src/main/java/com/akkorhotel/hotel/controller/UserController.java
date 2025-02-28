@@ -16,7 +16,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Map;
 
 @RestController
@@ -57,7 +59,8 @@ public class UserController {
                                             "informations": {
                                                 "username": "alice123",
                                                 "email": "alice@example.com",
-                                                "userRole": "USER"
+                                                "userRole": "USER",
+                                                "profileImageUrl": "https://example.png"
                                             }
                                         }
                                         """
@@ -212,7 +215,80 @@ public class UserController {
         return userService.deleteUser(authenticatedUser.getId());
     }
 
-
+    @PostMapping(value = "/profile-image", consumes = "multipart/form-data")
+    @Operation(
+            tags = {"User"},
+            summary = "Update user profile image",
+            description = "Allows an authenticated user to update their profile image.",
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Profile image uploaded successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Success Example",
+                                    value = """
+                                {
+                                    "message": "Profile image uploaded successfully"
+                                }
+                                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad request due to validation errors or unsupported image format",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Validation Errors Example",
+                                    value = """
+                                {
+                                    "error": "No file uploaded"
+                                }
+                                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad request due to unsupported image format",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Unsupported Image Format Example",
+                                    value = """
+                                {
+                                    "error": "Unsupported image format"
+                                }
+                                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error during image upload",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Image Upload Error Example",
+                                    value = """
+                                {
+                                    "error": "Failed to upload the image"
+                                }
+                                """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> uploadUserProfileImage(
+            @AuthenticationPrincipal User authenticatedUser,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        return userService.uploadUserProfileImage(authenticatedUser, file);
+    }
 
 
 }

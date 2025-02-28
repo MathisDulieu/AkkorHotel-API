@@ -1,5 +1,6 @@
 package com.akkorhotel.hotel.service;
 
+import com.akkorhotel.hotel.configuration.EnvConfiguration;
 import com.akkorhotel.hotel.dao.UserDao;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.LoginRequest;
@@ -25,6 +26,7 @@ public class AuthenticationService {
     private final JwtTokenService jwtTokenService;
     private final BCryptPasswordEncoder passwordEncoder;
     private final UserUtils userUtils;
+    private final EnvConfiguration envConfiguration;
 
     public ResponseEntity<Map<String, String>> register(User user) {
         String error = getValidationError(user);
@@ -34,6 +36,7 @@ public class AuthenticationService {
 
         user.setId(uuidProvider.generateUuid());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setProfileImageUrl(envConfiguration.getDefaultUserProfileImage());
         userDao.save(user);
 
         error = userUtils.sendRegisterConfirmationEmail(user);

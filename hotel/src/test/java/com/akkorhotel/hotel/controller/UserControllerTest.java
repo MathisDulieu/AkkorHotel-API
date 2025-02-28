@@ -16,8 +16,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.multipart.MultipartFile;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,6 +58,7 @@ class UserControllerTest {
                 .username("username")
                 .email("email")
                 .userRole("USER")
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         User authenticatedUser = User.builder()
@@ -65,6 +68,7 @@ class UserControllerTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userService.getAuthenticatedUser(any(User.class))).thenReturn(ResponseEntity.ok(singletonMap("informations", authenticatedUserResponse)));
@@ -76,7 +80,8 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.informations.username").value("username"))
                 .andExpect(jsonPath("$.informations.email").value("email"))
-                .andExpect(jsonPath("$.informations.userRole").value("USER"));
+                .andExpect(jsonPath("$.informations.userRole").value("USER"))
+                .andExpect(jsonPath("$.informations.profileImageUrl").value("profileImageUrl"));
 
         // Assert
         verify(userService).getAuthenticatedUser(captor.capture());
@@ -88,6 +93,7 @@ class UserControllerTest {
         assertThat(capturedRegisterRequest.getPassword()).isEqualTo("password");
         assertThat(capturedRegisterRequest.getRole()).isEqualTo(UserRole.USER);
         assertThat(capturedRegisterRequest.getIsValidEmail()).isTrue();
+        assertThat(capturedRegisterRequest.getProfileImageUrl()).isEqualTo("profileImageUrl");
     }
 
     @Test
@@ -136,6 +142,33 @@ class UserControllerTest {
 
         // Assert
         verify(userService).deleteUser(null);
+    }
+
+    @Test
+    void shouldUploadUserProfileImageSuccessfully() throws Exception {
+        // Arrange
+        MockMultipartFile mockFile = new MockMultipartFile("file", "test-image.png", MediaType.IMAGE_PNG_VALUE, "test image content".getBytes());
+
+        when(userService.uploadUserProfileImage(any(User.class), any(MultipartFile.class)))
+                .thenReturn(ResponseEntity.ok(singletonMap("message", "Profile image uploaded successfully")));
+
+        // Act
+        mockMvc.perform(multipart("/private/user/profile-image")
+                        .file(mockFile)
+                        .principal(() -> "authenticatedUser"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Profile image uploaded successfully"));
+
+        // Assert
+        ArgumentCaptor<MultipartFile> fileCaptor = ArgumentCaptor.forClass(MultipartFile.class);
+
+        verify(userService).uploadUserProfileImage(any(User.class), fileCaptor.capture());
+
+        MultipartFile capturedFile = fileCaptor.getValue();
+        assertThat(capturedFile.getOriginalFilename()).isEqualTo("test-image.png");
+        assertThat(capturedFile.getContentType()).isEqualTo(MediaType.IMAGE_PNG_VALUE);
+        assertThat(capturedFile.getBytes()).isEqualTo("test image content".getBytes());
+        assertThat(capturedFile.getName()).isEqualTo("file");
     }
 
 }

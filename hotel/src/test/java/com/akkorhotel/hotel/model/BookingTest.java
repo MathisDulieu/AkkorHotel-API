@@ -18,6 +18,7 @@ class BookingTest {
                         .username("user")
                         .email("user@example.com")
                         .password("password")
+                        .profileImageUrl("profileImageUrl")
                         .build())
                 .hotel(Hotel.builder()
                         .name("hotel")
@@ -43,6 +44,7 @@ class BookingTest {
         assertThat(booking.getUser().getPassword()).isEqualTo("password");
         assertThat(booking.getUser().getIsValidEmail()).isFalse();
         assertThat(booking.getUser().getRole()).isEqualTo(UserRole.USER);
+        assertThat(booking.getUser().getProfileImageUrl()).isEqualTo("profileImageUrl");
 
         assertThat(booking.getHotel().getId()).isNull();
         assertThat(booking.getHotel().getPicture_list()).isEqualTo(emptyList());
@@ -69,6 +71,7 @@ class BookingTest {
                 .username("username")
                 .email("email")
                 .password("password")
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         Hotel hotel = Hotel.builder()
@@ -112,6 +115,7 @@ class BookingTest {
         assertThat(booking.getUser().getPassword()).isEqualTo("password");
         assertThat(booking.getUser().getIsValidEmail()).isTrue();
         assertThat(booking.getUser().getRole()).isEqualTo(UserRole.ADMIN);
+        assertThat(booking.getUser().getProfileImageUrl()).isEqualTo("profileImageUrl");
 
         assertThat(booking.getHotel().getId()).isEqualTo("id");
         assertThat(booking.getHotel().getPicture_list()).isEqualTo(List.of("picture1", "picture2"));

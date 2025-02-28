@@ -1,6 +1,7 @@
 package com.akkorhotel.hotel.service;
 
 import com.akkorhotel.hotel.dao.UserDao;
+import com.akkorhotel.hotel.model.ImageExtension;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
@@ -39,6 +40,9 @@ class AdminServiceTest {
     @Mock
     private UserUtils userUtils;
 
+    @Mock
+    private ImageService imageService;
+
     @Test
     void shouldReturnAllUsersWithMatchingPrefix() {
         // Arrange
@@ -48,8 +52,8 @@ class AdminServiceTest {
 
         when(userDao.countUsersByUsernamePrefix(anyString())).thenReturn(3L);
         when(userDao.searchUsersByUsernamePrefix(anyString(), anyInt(), anyInt())).thenReturn(List.of(
-                User.builder().id("id1").username("anyUsername1").email("email1").build(),
-                User.builder().id("id2").username("anyUsername2").email("email2").build()
+                User.builder().id("id1").username("anyUsername1").email("email1").profileImageUrl("profileImageUrl1").build(),
+                User.builder().id("id2").username("anyUsername2").email("email2").profileImageUrl("profileImageUrl2").build()
         ));
 
         // Act
@@ -71,8 +75,8 @@ class AdminServiceTest {
         assertThat(usersResponse).isNotNull();
         assertThat(usersResponse.getUsers()).isEqualTo(
                 List.of(
-                        User.builder().id("id1").username("anyUsername1").email("email1").build(),
-                        User.builder().id("id2").username("anyUsername2").email("email2").build()
+                        User.builder().id("id1").username("anyUsername1").email("email1").profileImageUrl("profileImageUrl1").build(),
+                        User.builder().id("id2").username("anyUsername2").email("email2").profileImageUrl("profileImageUrl2").build()
                 )
         );
         assertThat(usersResponse.getTotalPages()).isEqualTo(2);
@@ -226,6 +230,8 @@ class AdminServiceTest {
                 .email("email")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .password("password")
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(user));
@@ -253,6 +259,7 @@ class AdminServiceTest {
                         .role(UserRole.USER)
                         .isValidEmail(true)
                         .password(null)
+                        .profileImageUrl("profileImageUrl")
                         .build()
         );
         assertThat(userResponse.getError()).isNull();
@@ -295,6 +302,8 @@ class AdminServiceTest {
                 .email("admin@email.com")
                 .role(UserRole.ADMIN)
                 .isValidEmail(true)
+                .password("password")
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(adminUser));
@@ -326,6 +335,7 @@ class AdminServiceTest {
         request.setUsername("newUsername");
         request.setIsValidEmail(false);
         request.setRole("ADMIN");
+        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
 
         User userToUpdate = User.builder()
                 .id("id")
@@ -334,6 +344,7 @@ class AdminServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("https://oldProfileImageUrl.png")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
@@ -341,6 +352,7 @@ class AdminServiceTest {
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
         when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
         when(userDao.isEmailAlreadyUsed(anyString())).thenReturn(false);
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.jpg);
 
         // Act
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
@@ -353,14 +365,16 @@ class AdminServiceTest {
                 .password("password")
                 .isValidEmail(false)
                 .role(UserRole.ADMIN)
+                .profileImageUrl("https://newProfileImageUrl.jpg")
                 .build();
 
-        InOrder inOrder = inOrder(userDao, userUtils);
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
         inOrder.verify(userDao).findById("id");
         inOrder.verify(userUtils).isInvalidUsername("newUsername");
         inOrder.verify(userDao).isUsernameAlreadyUsed("newUsername");
         inOrder.verify(userUtils).isInvalidEmail("new.email@gmail.com");
         inOrder.verify(userDao).isEmailAlreadyUsed("new.email@gmail.com");
+        inOrder.verify(imageService).getImageExtension("https://newProfileImageUrl.jpg");
         inOrder.verify(userDao).save(expectedUser);
         inOrder.verifyNoMoreInteractions();
 
@@ -381,7 +395,7 @@ class AdminServiceTest {
         // Assert
         verify(userDao).findById("notFoundId");
         verifyNoMoreInteractions(userDao);
-        verifyNoInteractions(userUtils);
+        verifyNoInteractions(userUtils, imageService);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "User not found"));
@@ -399,10 +413,11 @@ class AdminServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("https://oldProfileImageUrl.jpg")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
-        when(userUtils.getErrorsAsString(anyList())).thenReturn("No values provided for update. Please specify at least one field (email, username, isValidEmail or role)");
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("No values provided for update. Please specify at least one field (email, username, isValidEmail, profileImageUrl or role)");
 
         // Act
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
@@ -410,11 +425,13 @@ class AdminServiceTest {
         // Assert
         InOrder inOrder = inOrder(userDao, userUtils);
         inOrder.verify(userDao).findById("id");
-        inOrder.verify(userUtils).getErrorsAsString(List.of("No values provided for update. Please specify at least one field (email, username, isValidEmail or role)"));
+        inOrder.verify(userUtils).getErrorsAsString(List.of("No values provided for update. Please specify at least one field (email, username, isValidEmail, profileImageUrl or role)"));
         inOrder.verifyNoMoreInteractions();
 
+        verifyNoInteractions(imageService);
+
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "No values provided for update. Please specify at least one field (email, username, isValidEmail or role)"));
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "No values provided for update. Please specify at least one field (email, username, isValidEmail, profileImageUrl or role)"));
     }
 
     @Test
@@ -425,6 +442,7 @@ class AdminServiceTest {
         request.setUsername("invalidUsername");
         request.setIsValidEmail(false);
         request.setRole("ADMIN");
+        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
 
         User userToUpdate = User.builder()
                 .id("id")
@@ -433,19 +451,22 @@ class AdminServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("https://oldProfileImageUrl.png")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(true);
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.png);
         when(userUtils.getErrorsAsString(anyList())).thenReturn("The provided username is invalid. It must be between 3 and 11 characters long and cannot contain spaces");
 
         // Act
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
 
         // Assert
-        InOrder inOrder = inOrder(userDao, userUtils);
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
         inOrder.verify(userDao).findById("id");
         inOrder.verify(userUtils).isInvalidUsername("invalidUsername");
+        inOrder.verify(imageService).getImageExtension("https://newProfileImageUrl.jpg");
         inOrder.verify(userUtils).getErrorsAsString(List.of("The provided username is invalid. It must be between 3 and 11 characters long and cannot contain spaces"));
         inOrder.verifyNoMoreInteractions();
 
@@ -461,6 +482,7 @@ class AdminServiceTest {
         request.setUsername("alreadyUsed");
         request.setIsValidEmail(false);
         request.setRole("ADMIN");
+        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
 
         User userToUpdate = User.builder()
                 .id("id")
@@ -469,21 +491,24 @@ class AdminServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("https://oldProfileImageUrl.png")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(true);
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.jpg);
         when(userUtils.getErrorsAsString(anyList())).thenReturn("The username 'alreadyUsed' is already in use by another account. Please choose a different one");
 
         // Act
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
 
         // Assert
-        InOrder inOrder = inOrder(userDao, userUtils);
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
         inOrder.verify(userDao).findById("id");
         inOrder.verify(userUtils).isInvalidUsername("alreadyUsed");
         inOrder.verify(userDao).isUsernameAlreadyUsed("alreadyUsed");
+        inOrder.verify(imageService).getImageExtension("https://newProfileImageUrl.jpg");
         inOrder.verify(userUtils).getErrorsAsString(List.of("The username 'alreadyUsed' is already in use by another account. Please choose a different one"));
         inOrder.verifyNoMoreInteractions();
 
@@ -499,6 +524,7 @@ class AdminServiceTest {
         request.setUsername("oldUsername");
         request.setIsValidEmail(false);
         request.setRole("ADMIN");
+        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
 
         User userToUpdate = User.builder()
                 .id("id")
@@ -507,21 +533,24 @@ class AdminServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("https://oldProfileImageUrl.png")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.jpg);
         when(userUtils.getErrorsAsString(anyList())).thenReturn("The new username must be different from the current one");
 
         // Act
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
 
         // Assert
-        InOrder inOrder = inOrder(userDao, userUtils);
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
         inOrder.verify(userDao).findById("id");
         inOrder.verify(userUtils).isInvalidUsername("oldUsername");
         inOrder.verify(userDao).isUsernameAlreadyUsed("oldUsername");
+        inOrder.verify(imageService).getImageExtension("https://newProfileImageUrl.jpg");
         inOrder.verify(userUtils).getErrorsAsString(List.of("The new username must be different from the current one"));
         inOrder.verifyNoMoreInteractions();
 
@@ -537,6 +566,7 @@ class AdminServiceTest {
         request.setUsername("newUsername");
         request.setIsValidEmail(false);
         request.setRole("ADMIN");
+        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
 
         User userToUpdate = User.builder()
                 .id("id")
@@ -545,23 +575,26 @@ class AdminServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("https://oldProfileImageUrl.png")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
         when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
         when(userUtils.isInvalidEmail(anyString())).thenReturn(true);
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.jpg);
         when(userUtils.getErrorsAsString(anyList())).thenReturn("The provided email format is invalid. Please enter a valid email address");
 
         // Act
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
 
         // Assert
-        InOrder inOrder = inOrder(userDao, userUtils);
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
         inOrder.verify(userDao).findById("id");
         inOrder.verify(userUtils).isInvalidUsername("newUsername");
         inOrder.verify(userDao).isUsernameAlreadyUsed("newUsername");
         inOrder.verify(userUtils).isInvalidEmail("invalidEmail");
+        inOrder.verify(imageService).getImageExtension("https://newProfileImageUrl.jpg");
         inOrder.verify(userUtils).getErrorsAsString(List.of("The provided email format is invalid. Please enter a valid email address"));
         inOrder.verifyNoMoreInteractions();
 
@@ -577,6 +610,7 @@ class AdminServiceTest {
         request.setUsername("newUsername");
         request.setIsValidEmail(false);
         request.setRole("ADMIN");
+        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
 
         User userToUpdate = User.builder()
                 .id("id")
@@ -585,6 +619,7 @@ class AdminServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("https://oldProfileImageUrl.png")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
@@ -592,18 +627,20 @@ class AdminServiceTest {
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
         when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
         when(userDao.isEmailAlreadyUsed(anyString())).thenReturn(true);
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.jpg);
         when(userUtils.getErrorsAsString(anyList())).thenReturn("The email address 'alreadyUsed' is already associated with another account");
 
         // Act
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
 
         // Assert
-        InOrder inOrder = inOrder(userDao, userUtils);
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
         inOrder.verify(userDao).findById("id");
         inOrder.verify(userUtils).isInvalidUsername("newUsername");
         inOrder.verify(userDao).isUsernameAlreadyUsed("newUsername");
         inOrder.verify(userUtils).isInvalidEmail("alreadyUsed");
         inOrder.verify(userDao).isEmailAlreadyUsed("alreadyUsed");
+        inOrder.verify(imageService).getImageExtension("https://newProfileImageUrl.jpg");
         inOrder.verify(userUtils).getErrorsAsString(List.of("The email address 'alreadyUsed' is already associated with another account"));
         inOrder.verifyNoMoreInteractions();
 
@@ -619,6 +656,7 @@ class AdminServiceTest {
         request.setUsername("newUsername");
         request.setIsValidEmail(false);
         request.setRole("ADMIN");
+        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
 
         User userToUpdate = User.builder()
                 .id("id")
@@ -627,6 +665,7 @@ class AdminServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("https://oldProfileImageUrl.png")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
@@ -634,18 +673,20 @@ class AdminServiceTest {
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
         when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
         when(userDao.isEmailAlreadyUsed(anyString())).thenReturn(false);
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.jpg);
         when(userUtils.getErrorsAsString(anyList())).thenReturn("The new email address must be different from the current one");
 
         // Act
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
 
         // Assert
-        InOrder inOrder = inOrder(userDao, userUtils);
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
         inOrder.verify(userDao).findById("id");
         inOrder.verify(userUtils).isInvalidUsername("newUsername");
         inOrder.verify(userDao).isUsernameAlreadyUsed("newUsername");
         inOrder.verify(userUtils).isInvalidEmail("old.email@gmail.com");
         inOrder.verify(userDao).isEmailAlreadyUsed("old.email@gmail.com");
+        inOrder.verify(imageService).getImageExtension("https://newProfileImageUrl.jpg");
         inOrder.verify(userUtils).getErrorsAsString(List.of("The new email address must be different from the current one"));
         inOrder.verifyNoMoreInteractions();
 
@@ -661,6 +702,7 @@ class AdminServiceTest {
         request.setUsername("newUsername");
         request.setIsValidEmail(false);
         request.setRole("USER");
+        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
 
         User userToUpdate = User.builder()
                 .id("id")
@@ -669,6 +711,7 @@ class AdminServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("https://oldProfileImageUrl.png")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
@@ -676,18 +719,20 @@ class AdminServiceTest {
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
         when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
         when(userDao.isEmailAlreadyUsed(anyString())).thenReturn(false);
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.jpg);
         when(userUtils.getErrorsAsString(anyList())).thenReturn("The new role must be different from the current one");
 
         // Act
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
 
         // Assert
-        InOrder inOrder = inOrder(userDao, userUtils);
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
         inOrder.verify(userDao).findById("id");
         inOrder.verify(userUtils).isInvalidUsername("newUsername");
         inOrder.verify(userDao).isUsernameAlreadyUsed("newUsername");
         inOrder.verify(userUtils).isInvalidEmail("new.email@gmail.com");
         inOrder.verify(userDao).isEmailAlreadyUsed("new.email@gmail.com");
+        inOrder.verify(imageService).getImageExtension("https://newProfileImageUrl.jpg");
         inOrder.verify(userUtils).getErrorsAsString(List.of("The new role must be different from the current one"));
         inOrder.verifyNoMoreInteractions();
 
@@ -703,6 +748,7 @@ class AdminServiceTest {
         request.setUsername("newUsername");
         request.setIsValidEmail(false);
         request.setRole("NOT_VALID");
+        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
 
         User userToUpdate = User.builder()
                 .id("id")
@@ -711,6 +757,7 @@ class AdminServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("https://oldProfileImageUrl.png")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
@@ -718,18 +765,20 @@ class AdminServiceTest {
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
         when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
         when(userDao.isEmailAlreadyUsed(anyString())).thenReturn(false);
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.jpg);
         when(userUtils.getErrorsAsString(anyList())).thenReturn("Invalid role: NOT_VALID. Allowed values are: [USER, ADMIN]");
 
         // Act
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
 
         // Assert
-        InOrder inOrder = inOrder(userDao, userUtils);
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
         inOrder.verify(userDao).findById("id");
         inOrder.verify(userUtils).isInvalidUsername("newUsername");
         inOrder.verify(userDao).isUsernameAlreadyUsed("newUsername");
         inOrder.verify(userUtils).isInvalidEmail("new.email@gmail.com");
         inOrder.verify(userDao).isEmailAlreadyUsed("new.email@gmail.com");
+        inOrder.verify(imageService).getImageExtension("https://newProfileImageUrl.jpg");
         inOrder.verify(userUtils).getErrorsAsString(List.of("Invalid role: NOT_VALID. Allowed values are: [USER, ADMIN]"));
         inOrder.verifyNoMoreInteractions();
 
@@ -745,6 +794,7 @@ class AdminServiceTest {
         request.setUsername("newUsername");
         request.setIsValidEmail(true);
         request.setRole("ADMIN");
+        request.setProfileImageUrl("https://newProfileImageUrl.jpg");
 
         User userToUpdate = User.builder()
                 .id("id")
@@ -753,6 +803,7 @@ class AdminServiceTest {
                 .password("password")
                 .role(UserRole.USER)
                 .isValidEmail(true)
+                .profileImageUrl("https://oldProfileImageUrl.png")
                 .build();
 
         when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
@@ -760,23 +811,117 @@ class AdminServiceTest {
         when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
         when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
         when(userDao.isEmailAlreadyUsed(anyString())).thenReturn(false);
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.jpg);
         when(userUtils.getErrorsAsString(anyList())).thenReturn("The email verification status is already set to the provided value. No changes were made.");
 
         // Act
         ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
 
         // Assert
-        InOrder inOrder = inOrder(userDao, userUtils);
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
         inOrder.verify(userDao).findById("id");
         inOrder.verify(userUtils).isInvalidUsername("newUsername");
         inOrder.verify(userDao).isUsernameAlreadyUsed("newUsername");
         inOrder.verify(userUtils).isInvalidEmail("new.email@gmail.com");
         inOrder.verify(userDao).isEmailAlreadyUsed("new.email@gmail.com");
+        inOrder.verify(imageService).getImageExtension("https://newProfileImageUrl.jpg");
         inOrder.verify(userUtils).getErrorsAsString(List.of("The email verification status is already set to the provided value. No changes were made."));
         inOrder.verifyNoMoreInteractions();
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The email verification status is already set to the provided value. No changes were made."));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenProfileImageUrlDoesNotStartWithHttps() {
+        // Arrange
+        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
+        request.setEmail("new.email@gmail.com");
+        request.setUsername("newUsername");
+        request.setIsValidEmail(false);
+        request.setRole("ADMIN");
+        request.setProfileImageUrl("notValid.png");
+
+        User userToUpdate = User.builder()
+                .id("id")
+                .username("oldUsername")
+                .email("old.email@gmail.com")
+                .password("password")
+                .role(UserRole.USER)
+                .isValidEmail(true)
+                .profileImageUrl("https://any.jpg")
+                .build();
+
+        when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
+        when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
+        when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
+        when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
+        when(userDao.isEmailAlreadyUsed(anyString())).thenReturn(false);
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.png);
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The provided URL must start with 'https://'");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
+
+        // Assert
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
+        inOrder.verify(userDao).findById("id");
+        inOrder.verify(userUtils).isInvalidUsername("newUsername");
+        inOrder.verify(userDao).isUsernameAlreadyUsed("newUsername");
+        inOrder.verify(userUtils).isInvalidEmail("new.email@gmail.com");
+        inOrder.verify(userDao).isEmailAlreadyUsed("new.email@gmail.com");
+        inOrder.verify(imageService).getImageExtension("notValid.png");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("The provided URL must start with 'https://'"));
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The provided URL must start with 'https://'"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenProfileImageExtensionIsNotValid() {
+        // Arrange
+        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
+        request.setEmail("new.email@gmail.com");
+        request.setUsername("newUsername");
+        request.setIsValidEmail(false);
+        request.setRole("ADMIN");
+        request.setProfileImageUrl("https://notValid");
+
+        User userToUpdate = User.builder()
+                .id("id")
+                .username("oldUsername")
+                .email("old.email@gmail.com")
+                .password("password")
+                .role(UserRole.USER)
+                .isValidEmail(true)
+                .profileImageUrl("https://any.jpg")
+                .build();
+
+        when(userDao.findById(anyString())).thenReturn(Optional.of(userToUpdate));
+        when(userUtils.isInvalidUsername(anyString())).thenReturn(false);
+        when(userDao.isUsernameAlreadyUsed(anyString())).thenReturn(false);
+        when(userUtils.isInvalidEmail(anyString())).thenReturn(false);
+        when(userDao.isEmailAlreadyUsed(anyString())).thenReturn(false);
+        when(imageService.getImageExtension(anyString())).thenReturn(null);
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("The provided URL does not have a valid image format. Please provide a valid image URL");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.updateUser("id", request);
+
+        // Assert
+        InOrder inOrder = inOrder(userDao, userUtils, imageService);
+        inOrder.verify(userDao).findById("id");
+        inOrder.verify(userUtils).isInvalidUsername("newUsername");
+        inOrder.verify(userDao).isUsernameAlreadyUsed("newUsername");
+        inOrder.verify(userUtils).isInvalidEmail("new.email@gmail.com");
+        inOrder.verify(userDao).isEmailAlreadyUsed("new.email@gmail.com");
+        inOrder.verify(imageService).getImageExtension("https://notValid");
+        inOrder.verify(userUtils).getErrorsAsString(List.of("The provided URL does not have a valid image format. Please provide a valid image URL"));
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "The provided URL does not have a valid image format. Please provide a valid image URL"));
     }
 
 }

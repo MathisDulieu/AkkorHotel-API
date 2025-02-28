@@ -2,6 +2,7 @@ package com.akkorhotel.hotel;
 
 import com.akkorhotel.hotel.service.EmailService;
 import com.akkorhotel.hotel.service.JwtTokenService;
+import com.akkorhotel.hotel.utils.ImageUtils;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -57,6 +59,9 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
     @MockBean
     private BCryptPasswordEncoder passwordEncoder;
 
+    @MockBean
+    private ImageUtils imageUtils;
+
     @AfterEach
     void clean() {
         mongoTemplate.dropCollection("USERS");
@@ -72,7 +77,8 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
                 "password": "encodedPassword",
                 "email": "alice@example.com",
                 "isValidEmail": true,
-                "role": "USER"
+                "role": "USER",
+                "profileImageUrl": "https://profile-image.jpg"
             }
             """, "USERS");
 
@@ -97,7 +103,8 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
                     resultActions.andExpect(status().isOk())
                             .andExpect(jsonPath("$.informations.username").value("username"))
                             .andExpect(jsonPath("$.informations.email").value("alice@example.com"))
-                            .andExpect(jsonPath("$.informations.userRole").value("USER"));
+                            .andExpect(jsonPath("$.informations.userRole").value("USER"))
+                            .andExpect(jsonPath("$.informations.profileImageUrl").value("https://profile-image.jpg"));
                 });
     }
 
@@ -111,7 +118,8 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
                     "password": "encodedPassword1",
                     "email": "email1",
                     "isValidEmail": false,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image1.jpg"
                 }
                 """, "USERS");
 
@@ -122,7 +130,8 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
                     "password": "encodedPassword2",
                     "email": "email2",
                     "isValidEmail": true,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image2.jpg"
                 }
                 """, "USERS");
 
@@ -172,7 +181,8 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
                         entry("email", "email1"),
                         entry("password", "encodedPassword1"),
                         entry("isValidEmail", false),
-                        entry("role", "USER")
+                        entry("role", "USER"),
+                        entry("profileImageUrl", "https://profile-image1.jpg")
                 ));
 
         assertThat((Map<String, Object>) savedUsers.getLast())
@@ -182,7 +192,8 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
                         entry("email", "alice@example.com"),
                         entry("password", "newEncodedPassword"),
                         entry("isValidEmail", false),
-                        entry("role", "USER")
+                        entry("role", "USER"),
+                        entry("profileImageUrl", "https://profile-image2.jpg")
                 ));
 
         verify(emailService, times(1)).sendEmail(eq("alice@example.com"), anyString(), anyString());
@@ -198,7 +209,8 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
                     "password": "encodedPassword1",
                     "email": "email1",
                     "isValidEmail": true,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image1.jpg"
                 }
                 """, "USERS");
 
@@ -209,7 +221,8 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
                     "password": "encodedPassword2",
                     "email": "email2",
                     "isValidEmail": true,
-                    "role": "USER"
+                    "role": "USER",
+                    "profileImageUrl": "https://profile-image2.jpg"
                 }
                 """, "USERS");
 
@@ -246,7 +259,67 @@ public class UserIntegrationTests extends AbstractContainerBaseTest{
                         entry("email", "email2"),
                         entry("password", "encodedPassword2"),
                         entry("isValidEmail", true),
-                        entry("role", "USER")
+                        entry("role", "USER"),
+                        entry("profileImageUrl", "https://profile-image2.jpg")
+                ));
+    }
+
+    @Test
+    void shouldUploadUserProfileImage() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+            {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+                "username": "username1",
+                "password": "encodedPassword1",
+                "email": "email1",
+                "isValidEmail": true,
+                "role": "USER",
+                "profileImageUrl": "https://old-profile-image.jpg"
+            }
+            """, "USERS");
+
+        String token = Jwts.builder()
+                .setSubject("f2cccd2f-5711-4356-a13a-f687dc983ce1")
+                .claim("type", "access")
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
+                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
+                .compact();
+
+        MockMultipartFile file = new MockMultipartFile("file", "profile.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+
+        doReturn("https://mocked-image-url.com/profile.jpg").when(imageUtils).uploadImage(any());
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(multipart("/private/user/profile-image")
+                .file(file)
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.MULTIPART_FORM_DATA));
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.message").value("Profile image uploaded successfully"));
+                });
+
+        verify(imageUtils, times(1)).uploadImage(any());
+
+        List<Map> users = mongoTemplate.findAll(Map.class, "USERS");
+
+        assertThat(users).hasSize(1);
+
+        assertThat((Map<String, Object>) users.getFirst())
+                .containsAllEntriesOf(ofEntries(
+                        entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce1"),
+                        entry("username", "username1"),
+                        entry("email", "email1"),
+                        entry("password", "encodedPassword1"),
+                        entry("isValidEmail", true),
+                        entry("role", "USER"),
+                        entry("profileImageUrl", "https://mocked-image-url.com/profile.jpg")
                 ));
     }
 

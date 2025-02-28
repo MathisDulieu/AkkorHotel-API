@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
 
+
 @Getter
 @Setter
 @Builder
@@ -22,6 +23,7 @@ public class User {
     private Boolean isValidEmail = false;
 
     private String password;
+    private String profileImageUrl;
 
     @Builder.Default
     private UserRole role = UserRole.USER;

@@ -1,5 +1,6 @@
 package com.akkorhotel.hotel.utils;
 
+import com.akkorhotel.hotel.configuration.EnvConfiguration;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.service.EmailService;
@@ -29,6 +30,9 @@ class UserUtilsTest {
 
     @Mock
     private EmailService emailService;
+
+    @Mock
+    private EnvConfiguration envConfiguration;
 
 
     @Test
@@ -173,16 +177,19 @@ class UserUtilsTest {
                 .password("password")
                 .isValidEmail(false)
                 .role(UserRole.USER)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(jwtTokenService.generateEmailConfirmationToken("id")).thenReturn("emailToken");
+        when(envConfiguration.getMailRegisterSubject()).thenReturn("Registration Confirmation");
 
         // Act
         String response = userUtils.sendRegisterConfirmationEmail(user);
 
         // Assert
-        InOrder inOrder = inOrder(jwtTokenService, emailService);
+        InOrder inOrder = inOrder(jwtTokenService, envConfiguration, emailService);
         inOrder.verify(jwtTokenService).generateEmailConfirmationToken("id");
+        inOrder.verify(envConfiguration).getMailRegisterSubject();
         inOrder.verify(emailService, times(1)).sendEmail(eq("email"), any(), any());
         inOrder.verifyNoMoreInteractions();
 
@@ -199,17 +206,20 @@ class UserUtilsTest {
                 .password("password")
                 .isValidEmail(false)
                 .role(UserRole.USER)
+                .profileImageUrl("profileImageUrl")
                 .build();
 
         when(jwtTokenService.generateEmailConfirmationToken("id")).thenReturn("emailToken");
+        when(envConfiguration.getMailRegisterSubject()).thenReturn("Registration Confirmation");
         doThrow(new MailException("Email error") {}).when(emailService).sendEmail(anyString(), anyString(), anyString());
 
         // Act
         String response = userUtils.sendRegisterConfirmationEmail(user);
 
         // Assert
-        InOrder inOrder = inOrder(jwtTokenService, emailService);
+        InOrder inOrder = inOrder(jwtTokenService, envConfiguration, emailService);
         inOrder.verify(jwtTokenService).generateEmailConfirmationToken("id");
+        inOrder.verify(envConfiguration).getMailRegisterSubject();
         inOrder.verify(emailService, times(1)).sendEmail(eq("email"), any(), any());
         inOrder.verifyNoMoreInteractions();
 
