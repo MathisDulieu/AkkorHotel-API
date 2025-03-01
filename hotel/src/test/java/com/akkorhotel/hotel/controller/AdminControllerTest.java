@@ -4,6 +4,7 @@ import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRequest;
+import com.akkorhotel.hotel.model.request.CreateHotelRoomRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
@@ -278,6 +279,41 @@ class AdminControllerTest {
         assertThat(capturedFiles).hasSize(2);
         assertThat(capturedFiles.get(0).getOriginalFilename()).isEqualTo("hotel-image1.png");
         assertThat(capturedFiles.get(1).getOriginalFilename()).isEqualTo("hotel-image2.jpg");
+    }
+
+    @Test
+    void shouldAddNewRoomToHotel() throws Exception {
+        // Arrange
+        String requestBody = """
+        {
+            "hotelId": "hotelId",
+            "type": "type",
+            "features": ["feature1", "feature2"],
+            "maxOccupancy": 1,
+            "price": 10.00
+        }
+        """;
+
+        ArgumentCaptor<CreateHotelRoomRequest> requestCaptor = ArgumentCaptor.forClass(CreateHotelRoomRequest.class);
+
+        when(adminService.addRoomToHotel(any(CreateHotelRoomRequest.class)))
+                .thenReturn(ResponseEntity.ok(singletonMap("message", "HotelRoom added successfully")));
+
+        // Act & Assert
+        mockMvc.perform(post("/private/admin/hotel/room")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("HotelRoom added successfully"));
+
+        verify(adminService).addRoomToHotel(requestCaptor.capture());
+
+        CreateHotelRoomRequest capturedRequest = requestCaptor.getValue();
+        assertThat(capturedRequest.getHotelId()).isEqualTo("hotelId");
+        assertThat(capturedRequest.getType()).isEqualTo("type");
+        assertThat(capturedRequest.getFeatures()).containsExactly("feature1", "feature2");
+        assertThat(capturedRequest.getMaxOccupancy()).isEqualTo(1);
+        assertThat(capturedRequest.getPrice()).isEqualTo(10.00);
     }
 
 }

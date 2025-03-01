@@ -1,10 +1,12 @@
 package com.akkorhotel.hotel.service;
 
 import com.akkorhotel.hotel.dao.HotelDao;
+import com.akkorhotel.hotel.dao.HotelRoomDao;
 import com.akkorhotel.hotel.dao.UserDao;
 import com.akkorhotel.hotel.model.*;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRequest;
+import com.akkorhotel.hotel.model.request.CreateHotelRoomRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.utils.ImageUtils;
@@ -33,6 +35,7 @@ public class AdminService {
     private final HotelDao hotelDao;
     private final UuidProvider uuidProvider;
     private final ImageUtils imageUtils;
+    private final HotelRoomDao hotelRoomDao;
 
     public ResponseEntity<Map<String, GetAllUsersResponse>> getAllUsers(String keyword, int page, int pageSize) {
         GetAllUsersResponse response = GetAllUsersResponse.builder().build();
@@ -132,6 +135,129 @@ public class AdminService {
         hotelDao.save(hotel);
 
         return ResponseEntity.ok(singletonMap("message", "Hotel created successfully"));
+    }
+
+    public ResponseEntity<Map<String, String>> addRoomToHotel(CreateHotelRoomRequest request) {
+        List<String> errors = new ArrayList<>();
+        validateRequest(errors, request);
+
+        HotelRoomType hotelRoomType = getHotelRoomType(errors, request.getType());
+        List<HotelRoomFeatures> hotelRoomFeatures = getHotelRoomFeatures(errors, request.getFeatures());
+
+        if (!errors.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("errors", userUtils.getErrorsAsString(errors)));
+        }
+
+        Optional<Hotel> optionalHotel = hotelDao.findById(request.getHotelId());
+        if (optionalHotel.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "Hotel not found"));
+        }
+
+        Hotel hotel = optionalHotel.get();
+
+        HotelRoom hotelRoom = buildHotelRoom(request, hotelRoomType, hotelRoomFeatures);
+
+        List<HotelRoom> hotelRooms = new ArrayList<>(hotel.getRooms());
+        hotelRooms.add(hotelRoom);
+        hotel.setRooms(hotelRooms);
+
+        hotelRoomDao.save(hotelRoom);
+        hotelDao.save(hotel);
+
+        return ResponseEntity.ok(singletonMap("message", "HotelRoom added successfully"));
+    }
+
+    public ResponseEntity<Map<String, String>> deleteRoomFromHotel() {
+        return ResponseEntity.ok().build();
+    }
+
+    public ResponseEntity<Map<String, String>> addHotelPhoto() {
+        return ResponseEntity.ok().build();
+    }
+
+    public ResponseEntity<Map<String, String>> deleteHotelPhoto() {
+        return ResponseEntity.ok().build();
+    }
+
+    public ResponseEntity<Map<String, String>> updateHotel() {
+        return ResponseEntity.ok().build();
+    }
+
+    public ResponseEntity<Map<String, String>> deleteHotel() {
+        return ResponseEntity.ok().build();
+    }
+
+    public ResponseEntity<Map<String, String>> getAllUserBookings() {
+        return ResponseEntity.ok().build();
+    }
+
+    public ResponseEntity<Map<String, String>> getAllHotelBookings() {
+        return ResponseEntity.ok().build();
+    }
+
+    private void validateRequest(List<String> errors, CreateHotelRoomRequest request) {
+        if (isNull(request.getHotelId())) {
+            errors.add("Hotel ID cannot be null");
+        }
+
+        if (request.getMaxOccupancy() <= 0) {
+            errors.add("Room capacity must be greater than 0");
+        }
+
+        if (request.getPrice() <= 0) {
+            errors.add("Room price must be greater than 0");
+        }
+    }
+
+    private HotelRoom buildHotelRoom(CreateHotelRoomRequest request, HotelRoomType hotelRoomType, List<HotelRoomFeatures> hotelRoomFeatures) {
+        return HotelRoom.builder()
+                .id(uuidProvider.generateUuid())
+                .price(request.getPrice())
+                .maxOccupancy(request.getMaxOccupancy())
+                .type(hotelRoomType)
+                .features(hotelRoomFeatures)
+                .build();
+    }
+
+    private List<HotelRoomFeatures> getHotelRoomFeatures(List<String> errors, List<String> features) {
+        if (isNull(features) || features.isEmpty()) {
+            errors.add("Room features cannot be null or empty");
+            return null;
+        }
+
+        Set<String> validFeatures = Arrays.stream(HotelRoomFeatures.values())
+                .map(Enum::name)
+                .collect(toSet());
+
+        return features.stream()
+                .map(String::toUpperCase)
+                .filter(feature -> {
+                    if (!validFeatures.contains(feature)) {
+                        errors.add("Invalid feature: " + feature);
+                        return false;
+                    }
+                    return true;
+                })
+                .map(HotelRoomFeatures::valueOf)
+                .collect(toList());
+    }
+
+    private HotelRoomType getHotelRoomType(List<String> errors, String type) {
+        if (isNull(type)) {
+            errors.add("Room type cannot be null");
+            return null;
+        }
+
+        try {
+            return HotelRoomType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            errors.add("Invalid type: " + type);
+            return null;
+        }
+    }
+
+    private int getTotalPages(long totalUsers, int pageSize) {
+        return (int) Math.ceil((double) totalUsers / pageSize);
     }
 
     private List<String> getPictureListUrls(List<MultipartFile> pictureList, User authenticatedUser, String hotelName) {
@@ -290,26 +416,6 @@ public class AdminService {
                 errors.add("The hotel name cannot contain spaces");
             }
         }
-    }
-
-    public ResponseEntity<Map<String, String>> updateHotel() {
-        return ResponseEntity.ok().build();
-    }
-
-    public ResponseEntity<Map<String, String>> deleteHotel() {
-        return ResponseEntity.ok().build();
-    }
-
-    public ResponseEntity<Map<String, String>> getAllUserBookings() {
-        return ResponseEntity.ok().build();
-    }
-
-    public ResponseEntity<Map<String, String>> getAllHotelBookings() {
-        return ResponseEntity.ok().build();
-    }
-
-    private int getTotalPages(long totalUsers, int pageSize) {
-        return (int) Math.ceil((double) totalUsers / pageSize);
     }
 
     private String validateRequest(String keyword, int pageSize, int page) {

@@ -1,11 +1,13 @@
 package com.akkorhotel.hotel;
 
 import com.akkorhotel.hotel.service.JwtTokenService;
+import com.akkorhotel.hotel.service.UuidProvider;
 import com.akkorhotel.hotel.utils.ImageUtils;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -31,6 +33,7 @@ import static java.util.Map.ofEntries;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -52,16 +55,21 @@ public class AdminIntegrationTests {
     @MockBean
     private ImageUtils imageUtils;
 
+    @MockBean
+    private UuidProvider uuidProvider;
+
+    private String token;
+
     @AfterEach
     void clean() {
         mongoTemplate.dropCollection("USERS");
         mongoTemplate.dropCollection("HOTELS");
         mongoTemplate.dropCollection("IMAGES");
+        mongoTemplate.dropCollection("HOTEL_ROOMS");
     }
 
-    @Test
-    void shouldGetAllUsers() throws Exception {
-        // Arrange
+    @BeforeEach
+    void setUp() {
         mongoTemplate.insert("""
                 {
                     "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
@@ -74,6 +82,18 @@ public class AdminIntegrationTests {
                 }
                 """, "USERS");
 
+        token = Jwts.builder()
+                .setSubject("f2cccd2f-5711-4356-a13a-f687dc983ce9")
+                .claim("type", "access")
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
+                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
+                .compact();
+    }
+
+    @Test
+    void shouldGetAllUsers() throws Exception {
+        // Arrange
         mongoTemplate.insert("""
                 {
                     "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
@@ -122,14 +142,6 @@ public class AdminIntegrationTests {
                 }
                 """, "USERS");
 
-        String token = Jwts.builder()
-                .setSubject("f2cccd2f-5711-4356-a13a-f687dc983ce9")
-                .claim("type", "access")
-                .setIssuedAt(Date.from(Instant.now()))
-                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
-                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
-                .compact();
-
         // Act
         ResultActions resultActions = mockMvc.perform(get("/private/admin/users")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -164,18 +176,6 @@ public class AdminIntegrationTests {
         // Arrange
         mongoTemplate.insert("""
                 {
-                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
-                    "username": "adminUsername",
-                    "password": "adminPassword",
-                    "email": "admin.email@gmail.com",
-                    "isValidEmail": true,
-                    "role": "ADMIN",
-                    "profileImageUrl": "https://admin-profile-image.jpg"
-                }
-                """, "USERS");
-
-        mongoTemplate.insert("""
-                {
                     "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
                     "username": "Cobol4Life",
                     "password": "encodedPassword",
@@ -185,14 +185,6 @@ public class AdminIntegrationTests {
                     "profileImageUrl": "https://profile-image.jpg"
                 }
                 """, "USERS");
-
-        String token = Jwts.builder()
-                .setSubject("f2cccd2f-5711-4356-a13a-f687dc983ce9")
-                .claim("type", "access")
-                .setIssuedAt(Date.from(Instant.now()))
-                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
-                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
-                .compact();
 
         // Act
         ResultActions resultActions = mockMvc.perform(get("/private/admin/user/{userId}", "f2cccd2f-5711-4356-a13a-f687dc983ce1")
@@ -219,18 +211,6 @@ public class AdminIntegrationTests {
     @Test
     void shouldUpdateUser() throws Exception {
         // Arrange
-        mongoTemplate.insert("""
-            {
-                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
-                "username": "adminUsername",
-                "password": "adminPassword",
-                "email": "adminEmail",
-                "isValidEmail": true,
-                "role": "ADMIN",
-                "profileImageUrl": "https://admin-profile-image.jpg"
-            }
-            """, "USERS");
-
         mongoTemplate.insert("""
             {
                 "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
@@ -266,14 +246,6 @@ public class AdminIntegrationTests {
             "profileImageUrl": "https://new-profile-image.png"
         }
         """;
-
-        String token = Jwts.builder()
-                .setSubject("f2cccd2f-5711-4356-a13a-f687dc983ce9")
-                .claim("type", "access")
-                .setIssuedAt(Date.from(Instant.now()))
-                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
-                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
-                .compact();
 
         // Act
         ResultActions resultActions = mockMvc.perform(put("/private/admin/user/{userId}", userId)
@@ -331,26 +303,6 @@ public class AdminIntegrationTests {
     @Test
     void shouldCreateHotel() throws Exception {
         // Arrange
-        mongoTemplate.insert("""
-        {
-            "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
-            "username": "adminUsername",
-            "password": "adminPassword",
-            "email": "admin@example.com",
-            "isValidEmail": true,
-            "role": "ADMIN",
-            "profileImageUrl": "https://admin-profile-image.jpg"
-        }
-        """, "USERS");
-
-        String token = Jwts.builder()
-                .setSubject("f2cccd2f-5711-4356-a13a-f687dc983ce9")
-                .claim("type", "access")
-                .setIssuedAt(Date.from(Instant.now()))
-                .setExpiration(Date.from(Instant.now().plusSeconds(172_800_000)))
-                .signWith(JwtTokenService.SECRET_KEY, SignatureAlgorithm.HS512)
-                .compact();
-
         MockMultipartFile mockFile1 = new MockMultipartFile("pictures", "hotel-image1.png", MediaType.IMAGE_PNG_VALUE, "image-content-1".getBytes());
         MockMultipartFile mockFile2 = new MockMultipartFile("pictures", "hotel-image2.jpg", MediaType.IMAGE_JPEG_VALUE, "image-content-2".getBytes());
 
@@ -417,7 +369,128 @@ public class AdminIntegrationTests {
                                 entry("state", "Île-de-France")
                         ))
                 ));
+    }
 
+    @Test
+    void shouldAddNewRoomToHotel() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+            "name": "LuxuryHotel",
+            "description": "A five-star experience.",
+            "picture_list": ["https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg"],
+            "amenities": ["POOL", "WIFI"],
+            "rooms": [
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
+                    "type": "SINGLE",
+                    "price": 120,
+                    "maxOccupancy": 3,
+                    "features": ["ROOM_SERVICE", "BALCONY"]
+                },
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce3",
+                    "type": "DOUBLE",
+                    "price": 150,
+                    "maxOccupancy": 5,
+                    "features": ["WIFI", "HAIR_DRYER"]
+                }
+            ],
+            "location": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce4",
+                "address": "123 Rue de la Paix",
+                "city": "Paris",
+                "state": "Île-de-France",
+                "country": "France",
+                "postalCode": "75001",
+                "googleMapsUrl": "https://maps.google.com/?q=LuxuryHotel"
+            }
+        }
+        """, "HOTELS");
+
+        String requestBody = """
+        {
+            "hotelId": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+            "type": "DELUXE",
+            "features": ["WIFI", "MINI_FRIDGE"],
+            "maxOccupancy": 3,
+            "price": 250.00
+        }
+        """;
+
+        when(uuidProvider.generateUuid()).thenReturn("f2cccd2f-5711-4356-a13a-f687dc983ce5");
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(post("/private/admin/hotel/room")
+                .content(requestBody)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + token)
+        );
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.message").value("HotelRoom added successfully"));
+                });
+
+        List<Map> savedHotels = mongoTemplate.findAll(Map.class, "HOTELS");
+
+        assertThat(savedHotels).hasSize(1);
+        assertThat((Map<String, Object>) savedHotels.getFirst())
+                .containsAllEntriesOf(ofEntries(
+                        entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce1"),
+                        entry("name", "LuxuryHotel"),
+                        entry("description", "A five-star experience."),
+                        entry("amenities", List.of("POOL", "WIFI")),
+                        entry("picture_list", List.of("https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg")),
+                        entry("location", Map.ofEntries(
+                                entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce4"),
+                                entry("address", "123 Rue de la Paix"),
+                                entry("city", "Paris"),
+                                entry("country", "France"),
+                                entry("googleMapsUrl", "https://maps.google.com/?q=LuxuryHotel"),
+                                entry("postalCode", "75001"),
+                                entry("state", "Île-de-France")
+                        )),
+                        entry("rooms", List.of(
+                                Map.ofEntries(
+                                        entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce2"),
+                                        entry("type", "SINGLE"),
+                                        entry("price", 120.00),
+                                        entry("maxOccupancy", 3),
+                                        entry("features", List.of("ROOM_SERVICE", "BALCONY"))
+                                ),
+                                Map.ofEntries(
+                                        entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce3"),
+                                        entry("type", "DOUBLE"),
+                                        entry("price", 150.00),
+                                        entry("maxOccupancy", 5),
+                                        entry("features", List.of("WIFI", "HAIR_DRYER"))
+                                ),
+                                Map.ofEntries(
+                                        entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce5"),
+                                        entry("type", "DELUXE"),
+                                        entry("price", 250.00),
+                                        entry("maxOccupancy", 3),
+                                        entry("features", List.of("WIFI", "MINI_FRIDGE"))
+                                )
+                        ))
+                ));
+
+        List<Map> savedHotelRooms = mongoTemplate.findAll(Map.class, "HOTEL_ROOMS");
+
+        assertThat(savedHotelRooms).hasSize(1);
+        assertThat((Map<String, Object>) savedHotelRooms.getFirst())
+                .containsAllEntriesOf(ofEntries(
+                        entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce5"),
+                        entry("type", "DELUXE"),
+                        entry("price", 250.00),
+                        entry("maxOccupancy", 3),
+                        entry("features", List.of("WIFI", "MINI_FRIDGE"))
+                ));
     }
 
 }

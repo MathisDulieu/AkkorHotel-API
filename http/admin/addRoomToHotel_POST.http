@@ -1,0 +1,21 @@
+### Add a room to a hotel - 200
+POST {{url}}/private/admin/hotel/room
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "hotelId": "63071351-59b6-4b87-9c76-85f4c6b64c8b",
+  "type": "DELUXE",
+  "features": [
+    "WIFI",
+    "SHOWER"
+  ],
+  "maxOccupancy": 4,
+  "price": 150
+}
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status);
+    });
+%}

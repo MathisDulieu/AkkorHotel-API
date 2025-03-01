@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 @RequiredArgsConstructor
 public class HotelDao {
@@ -15,6 +17,10 @@ public class HotelDao {
 
     public void save(Hotel hotel) {
         mongoTemplate.save(hotel, HOTEL_COLLECTION);
+    }
+
+    public Optional<Hotel> findById(String hotelId) {
+        return Optional.ofNullable(mongoTemplate.findById(hotelId, Hotel.class, HOTEL_COLLECTION));
     }
 
 }

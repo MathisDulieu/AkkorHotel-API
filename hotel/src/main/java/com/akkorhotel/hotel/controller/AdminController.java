@@ -4,6 +4,7 @@ package com.akkorhotel.hotel.controller;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRequest;
+import com.akkorhotel.hotel.model.request.CreateHotelRoomRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
@@ -63,13 +64,13 @@ public class AdminController {
                                 "users": {
                                     "users": [
                                         {
-                                            "id": "60f7b1e2b3e2a81b5cb4c735",
+                                            "id": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
                                             "username": "alice123",
                                             "email": "alice@example.com",
                                             "profileImageUrl": "https://example.png"
                                         },
                                         {
-                                            "id": "60f7b1e2b3e2a81b5cb4c736",
+                                            "id": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
                                             "username": "alicia456",
                                             "email": "alicia@example.com",
                                             "profileImageUrl": "https://example.png"
@@ -280,7 +281,7 @@ public class AdminController {
                                     name = "Successful User Update",
                                     value = """
                             {
-                                "message": "User with id: 60f7b1e2b3e2a81b5cb4c735 updated successfully"
+                                "message": "User with id: f2cccd2f-5711-4356-a13a-f687dc983ce9 updated successfully"
                             }
                             """
                             )
@@ -417,7 +418,7 @@ public class AdminController {
 
     @PostMapping(value = "/hotel", consumes = "multipart/form-data")
     @Operation(
-            tags = {"Hotel"},
+            tags = {"Admin"},
             summary = "Create a new hotel",
             description = """
         Allows an authenticated user to create a new hotel with a name, description, location, amenities, and pictures.
@@ -590,6 +591,135 @@ public class AdminController {
         ObjectMapper objectMapper = new ObjectMapper();
         CreateHotelRequest request = objectMapper.readValue(requestJson, CreateHotelRequest.class);
         return adminService.createHotel(authenticatedUser, request, pictureList);
+    }
+
+    @PostMapping("/hotel/room")
+    @Operation(
+            tags = {"Admin"},
+            summary = "Add a room to a hotel",
+            description = """
+        Allows an administrator to add a new room to an existing hotel.
+
+        ## Notes:
+        - The **hotelId** must be valid.
+        - The **room type** must be a valid value from `HotelRoomType` enumeration.
+        - The **room features** must be valid values from `HotelRoomFeatures` enumeration.
+        - The **max occupancy** must be greater than 0.
+        - The **price** must be greater than 0.
+        """,
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Hotel room added successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Successful Room Addition",
+                                    value = """
+                                {
+                                    "message": "HotelRoom added successfully"
+                                }
+                                """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request or validation errors",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Invalid Hotel ID",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "Hotel ID cannot be null"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Room Type",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "Room type cannot be null or empty",
+                                                "Invalid type: PENTHOUSE_SUITE"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Room Features",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "Room features cannot be null or empty",
+                                                "Invalid feature: SMART_BED"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Max Occupancy",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "Room capacity must be greater than 0"
+                                            ]
+                                        }
+                                        """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Price",
+                                            value = """
+                                        {
+                                            "errors": [
+                                                "Room price must be greater than 0"
+                                            ]
+                                        }
+                                        """
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Hotel not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Hotel Not Found",
+                                    value = """
+                                {
+                                    "error": "Hotel not found"
+                                }
+                                """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> addRoomToHotel(
+            @RequestBody(description = "Hotel room creation request", required = true, content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "Hotel Room Creation Request",
+                            value = """
+                        {
+                            "hotelId": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
+                            "type": "DELUXE",
+                            "features": ["WIFI", "SHOWER"],
+                            "maxOccupancy": 4,
+                            "price": 150.00
+                        }
+                        """
+                    )
+            )) @org.springframework.web.bind.annotation.RequestBody CreateHotelRoomRequest request) {
+
+        return adminService.addRoomToHotel(request);
     }
 
 

@@ -1,10 +1,12 @@
 package com.akkorhotel.hotel.service;
 
 import com.akkorhotel.hotel.dao.HotelDao;
+import com.akkorhotel.hotel.dao.HotelRoomDao;
 import com.akkorhotel.hotel.dao.UserDao;
 import com.akkorhotel.hotel.model.*;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRequest;
+import com.akkorhotel.hotel.model.request.CreateHotelRoomRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.utils.ImageUtils;
@@ -56,6 +58,9 @@ class AdminServiceTest {
 
     @Mock
     private HotelDao hotelDao;
+
+    @Mock
+    private HotelRoomDao hotelRoomDao;
 
     @Test
     void shouldReturnAllUsersWithMatchingPrefix() {
@@ -1590,6 +1595,270 @@ class AdminServiceTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "At least one valid picture is required"));
+    }
+
+    @Test
+    void shouldAddNewRoomToHotel() {
+        // Arrange
+        CreateHotelRoomRequest request = buildCreateHotelRoomRequest("hotelId", "SUITE",
+                List.of("SMOKE_DETECTED", "COFFEE_MACHINE"), 152.0, 5);
+
+        HotelLocation hotelLocation = HotelLocation.builder()
+                .id("hotelLocationId")
+                .address("address")
+                .city("city")
+                .state("state")
+                .country("country")
+                .postalCode("postalCode")
+                .googleMapsUrl("https://googleMapsUrl")
+                .build();
+
+        Hotel hotel = Hotel.builder()
+                .id("hotelId")
+                .name("name")
+                .description("description")
+                .picture_list(List.of("https://picture1.jpg", "https://picture2.png"))
+                .amenities(List.of(HotelAmenities.WIFI, HotelAmenities.BAR))
+                .location(hotelLocation)
+                .rooms(emptyList())
+                .build();
+
+        when(hotelDao.findById(anyString())).thenReturn(Optional.of(hotel));
+        when(uuidProvider.generateUuid()).thenReturn("hotelRoomId");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addRoomToHotel(request);
+
+        // Assert
+        HotelRoom expectedHotelRoom = HotelRoom.builder()
+                .id("hotelRoomId")
+                .type(HotelRoomType.SUITE)
+                .price(152.0)
+                .features(List.of(HotelRoomFeatures.SMOKE_DETECTED, HotelRoomFeatures.COFFEE_MACHINE))
+                .maxOccupancy(5)
+                .build();
+
+        Hotel expectedHotel = Hotel.builder()
+                .id("hotelId")
+                .name("name")
+                .description("description")
+                .picture_list(List.of("https://picture1.jpg", "https://picture2.png"))
+                .amenities(List.of(HotelAmenities.WIFI, HotelAmenities.BAR))
+                .location(hotelLocation)
+                .rooms(List.of(expectedHotelRoom))
+                .build();
+
+        InOrder inOrder = inOrder(hotelDao, uuidProvider, hotelRoomDao);
+        inOrder.verify(hotelDao).findById("hotelId");
+        inOrder.verify(uuidProvider).generateUuid();
+        inOrder.verify(hotelRoomDao).save(expectedHotelRoom);
+        inOrder.verify(hotelDao).save(expectedHotel);
+        inOrder.verifyNoMoreInteractions();
+
+        verifyNoInteractions(userUtils);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("message", "HotelRoom added successfully"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenHotelIdIsNull() {
+        // Arrange
+        CreateHotelRoomRequest request = buildCreateHotelRoomRequest(null, "SUITE",
+                List.of("SMOKE_DETECTED", "COFFEE_MACHINE"), 152.0, 5);
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Hotel ID cannot be null");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addRoomToHotel(request);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("Hotel ID cannot be null"));
+
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(hotelDao, uuidProvider, hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "Hotel ID cannot be null"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenRoomTypeIsNull() {
+        // Arrange
+        CreateHotelRoomRequest request = buildCreateHotelRoomRequest("hotelId", null,
+                List.of("SMOKE_DETECTED", "COFFEE_MACHINE"), 152.0, 5);
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Room type cannot be null");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addRoomToHotel(request);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("Room type cannot be null"));
+
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(hotelDao, uuidProvider, hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "Room type cannot be null"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenRoomTypeIsInvalid() {
+        // Arrange
+        CreateHotelRoomRequest request = buildCreateHotelRoomRequest("hotelId", "NOT_VALID",
+                List.of("SMOKE_DETECTED", "COFFEE_MACHINE"), 152.0, 5);
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Invalid type: NOT_VALID");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addRoomToHotel(request);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("Invalid type: NOT_VALID"));
+
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(hotelDao, uuidProvider, hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "Invalid type: NOT_VALID"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenRoomFeaturesIsNull() {
+        // Arrange
+        CreateHotelRoomRequest request = buildCreateHotelRoomRequest("hotelId", "SUITE",
+                null, 152.0, 5);
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Room features cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addRoomToHotel(request);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("Room features cannot be null or empty"));
+
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(hotelDao, uuidProvider, hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "Room features cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenRoomFeaturesIsEmpty() {
+        // Arrange
+        CreateHotelRoomRequest request = buildCreateHotelRoomRequest("hotelId", "SUITE",
+                emptyList(), 152.0, 5);
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Room features cannot be null or empty");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addRoomToHotel(request);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("Room features cannot be null or empty"));
+
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(hotelDao, uuidProvider, hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "Room features cannot be null or empty"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenRoomFeaturesContainInvalidFeature() {
+        // Arrange
+        CreateHotelRoomRequest request = buildCreateHotelRoomRequest("hotelId", "SUITE",
+                List.of("INVALID_FEATURE", "COFFEE_MACHINE"), 152.0, 5);
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Invalid feature: INVALID_FEATURE");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addRoomToHotel(request);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("Invalid feature: INVALID_FEATURE"));
+
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(hotelDao, uuidProvider, hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "Invalid feature: INVALID_FEATURE"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenMaxOccupancyIsZeroOrNegative() {
+        // Arrange
+        CreateHotelRoomRequest request = buildCreateHotelRoomRequest("hotelId", "SUITE",
+                List.of("SMOKE_DETECTED", "COFFEE_MACHINE"), 152.0, 0);
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Room capacity must be greater than 0");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addRoomToHotel(request);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("Room capacity must be greater than 0"));
+
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(hotelDao, uuidProvider, hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "Room capacity must be greater than 0"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenPriceIsZeroOrNegative() {
+        // Arrange
+        CreateHotelRoomRequest request = buildCreateHotelRoomRequest("hotelId", "SUITE",
+                List.of("SMOKE_DETECTED", "COFFEE_MACHINE"), 0, 5);
+
+        when(userUtils.getErrorsAsString(anyList())).thenReturn("Room price must be greater than 0");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addRoomToHotel(request);
+
+        // Assert
+        verify(userUtils).getErrorsAsString(List.of("Room price must be greater than 0"));
+
+        verifyNoMoreInteractions(userUtils);
+        verifyNoInteractions(hotelDao, uuidProvider, hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("errors", "Room price must be greater than 0"));
+    }
+
+    @Test
+    void shouldReturnNotFound_whenHotelDoesNotExist() {
+        // Arrange
+        CreateHotelRoomRequest request = buildCreateHotelRoomRequest("hotelId", "SUITE",
+                List.of("SMOKE_DETECTED", "COFFEE_MACHINE"), 152.0, 5);
+
+        when(hotelDao.findById(anyString())).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addRoomToHotel(request);
+
+        // Assert
+        verify(hotelDao).findById("hotelId");
+
+        verifyNoMoreInteractions(hotelDao);
+        verifyNoInteractions(userUtils, uuidProvider, hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "Hotel not found"));
+    }
+
+    private CreateHotelRoomRequest buildCreateHotelRoomRequest(String hotelId, String type, List<String> features, double price, int maxOccupancy) {
+        CreateHotelRoomRequest request = new CreateHotelRoomRequest();
+        request.setHotelId(hotelId);
+        request.setType(type);
+        request.setFeatures(features);
+        request.setPrice(price);
+        request.setMaxOccupancy(maxOccupancy);
+
+        return request;
     }
 
     private AdminUpdateUserRequest buildAdminUpdateUserRequest(String email, String username, boolean isValidEmail, String role, String profileImageUrl) {
