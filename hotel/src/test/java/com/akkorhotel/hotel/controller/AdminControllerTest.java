@@ -363,4 +363,39 @@ class AdminControllerTest {
         verify(adminService).deleteHotel(hotelId);
     }
 
+    @Test
+    void shouldAddHotelPicture() throws Exception {
+        // Arrange
+        MockMultipartFile mockFile = new MockMultipartFile("picture", "picture.jpg", MediaType.IMAGE_JPEG_VALUE, "image-content".getBytes());
+        String hotelId = "f2cccd2f-5711-4356-a13a-f687dc983ce1";
+
+        when(adminService.addHotelPicture(any(User.class), eq(hotelId), any(MultipartFile.class)))
+                .thenReturn(ResponseEntity.ok(singletonMap("message", "Picture added successfully")));
+
+        // Act
+        mockMvc.perform(multipart("/private/admin/hotel/{hotelId}/picture", hotelId)
+                        .file(mockFile)
+                        .with(request -> {
+                            request.setMethod("POST");
+                            return request;
+                        })
+                        .principal(() -> "authenticatedUser")
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Picture added successfully"));
+
+        // Assert
+        ArgumentCaptor<String> hotelIdCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<MultipartFile> fileCaptor = ArgumentCaptor.forClass(MultipartFile.class);
+
+        verify(adminService).addHotelPicture(any(User.class), hotelIdCaptor.capture(), fileCaptor.capture());
+
+        String capturedHotelId = hotelIdCaptor.getValue();
+        MultipartFile capturedFile = fileCaptor.getValue();
+
+        assertThat(capturedHotelId).isEqualTo(hotelId);
+        assertThat(capturedFile.getOriginalFilename()).isEqualTo("picture.jpg");
+        assertThat(capturedFile.getName()).isEqualTo("picture");
+    }
+
 }

@@ -895,4 +895,84 @@ public class AdminController {
         return adminService.deleteHotel(hotelId);
     }
 
+    @PostMapping(value = "/hotel/{hotelId}/picture", consumes = "multipart/form-data")
+    @Operation(
+            tags = {"Admin"},
+            summary = "Add a picture to an existing hotel",
+            description = """
+            Allows an authenticated user to add a picture to an existing hotel.
+            
+            ## Notes:
+            - The picture must be a valid image format (JPG, PNG, or WEBP).
+            - The hotel must already exist.
+            - If the provided picture is invalid or missing, an error message is returned.
+            """,
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Picture added successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Successful Picture Addition",
+                                    value = """
+                                    {
+                                        "message": "Picture added successfully"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request or validation errors",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Invalid Image Format",
+                                            value = """
+                                            {
+                                                "error": "Invalid image format. Supported formats: JPG, PNG, WEBP"
+                                            }
+                                            """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Image",
+                                            value = """
+                                            {
+                                                "error": "The provided picture is invalid or missing"
+                                            }
+                                            """
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Hotel not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Hotel Not Found",
+                                    value = """
+                                    {
+                                        "error": "Hotel not found"
+                                    }
+                                    """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> addHotelPicture(
+            @AuthenticationPrincipal User authenticatedUser,
+            @PathVariable String hotelId,
+            @RequestPart(value = "picture") MultipartFile photo
+    ) {
+        return adminService.addHotelPicture(authenticatedUser, hotelId, photo);
+    }
+
+
 }

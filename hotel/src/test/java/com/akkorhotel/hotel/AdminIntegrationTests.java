@@ -679,5 +679,102 @@ public class AdminIntegrationTests {
         assertThat(savedHotelRooms).isEmpty();
     }
 
+    @Test
+    void shouldAddHotelPicture() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+            "name": "LuxuryHotel",
+            "description": "A five-star experience.",
+            "picture_list": ["https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg"],
+            "amenities": ["POOL", "WIFI"],
+            "rooms": [
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
+                    "type": "SINGLE",
+                    "price": 120,
+                    "maxOccupancy": 3,
+                    "features": ["ROOM_SERVICE", "BALCONY"]
+                },
+                {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce3",
+                    "type": "DOUBLE",
+                    "price": 150,
+                    "maxOccupancy": 5,
+                    "features": ["WIFI", "HAIR_DRYER"]
+                }
+            ],
+            "location": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce4",
+                "address": "123 Rue de la Paix",
+                "city": "Paris",
+                "state": "Île-de-France",
+                "country": "France",
+                "postalCode": "75001",
+                "googleMapsUrl": "https://maps.google.com/?q=LuxuryHotel"
+            }
+        }
+        """, "HOTELS");
+
+        String hotelId = "f2cccd2f-5711-4356-a13a-f687dc983ce1";
+
+        MockMultipartFile mockFile = new MockMultipartFile("picture", "picture.jpg", MediaType.IMAGE_JPEG_VALUE, "image-content".getBytes());
+
+        doReturn("https://mocked-image-url.com/hotel3.jpg").when(imageUtils).uploadImage(mockFile);
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(multipart("/private/admin/hotel/{hotelId}/picture", hotelId)
+                .file(mockFile)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .header("Authorization", "Bearer " + token)
+        );
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.message").value("Picture added successfully"));
+                });
+
+        List<Map> savedHotels = mongoTemplate.findAll(Map.class, "HOTELS");
+
+        assertThat(savedHotels).hasSize(1);
+        assertThat((Map<String, Object>) savedHotels.getFirst())
+                .containsAllEntriesOf(ofEntries(
+                        entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce1"),
+                        entry("name", "LuxuryHotel"),
+                        entry("description", "A five-star experience."),
+                        entry("amenities", List.of("POOL", "WIFI")),
+                        entry("picture_list", List.of("https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg", "https://mocked-image-url.com/hotel3.jpg")),
+                        entry("location", Map.ofEntries(
+                                entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce4"),
+                                entry("address", "123 Rue de la Paix"),
+                                entry("city", "Paris"),
+                                entry("country", "France"),
+                                entry("googleMapsUrl", "https://maps.google.com/?q=LuxuryHotel"),
+                                entry("postalCode", "75001"),
+                                entry("state", "Île-de-France")
+                        )),
+                        entry("rooms", List.of(
+                                Map.ofEntries(
+                                        entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce2"),
+                                        entry("type", "SINGLE"),
+                                        entry("price", 120.00),
+                                        entry("maxOccupancy", 3),
+                                        entry("features", List.of("ROOM_SERVICE", "BALCONY"))
+                                ),
+                                Map.ofEntries(
+                                        entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce3"),
+                                        entry("type", "DOUBLE"),
+                                        entry("price", 150.00),
+                                        entry("maxOccupancy", 5),
+                                        entry("features", List.of("WIFI", "HAIR_DRYER"))
+                                )
+                        ))
+                ));
+    }
+
 
 }

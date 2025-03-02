@@ -2069,6 +2069,152 @@ class AdminServiceTest {
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "Hotel not found"));
     }
 
+    @Test
+    void shouldAddPictureToHotel() throws IOException {
+        // Arrange
+        HotelLocation hotelLocation = HotelLocation.builder()
+                .id("hotelLocationId")
+                .address("address")
+                .city("city")
+                .state("state")
+                .country("country")
+                .postalCode("postalCode")
+                .googleMapsUrl("https://googleMapsUrl")
+                .build();
+
+        HotelRoom hotelRoom = HotelRoom.builder()
+                .id("hotelRoomId")
+                .type(HotelRoomType.DELUXE)
+                .maxOccupancy(8)
+                .features(List.of(HotelRoomFeatures.FLAT_SCREEN_TV, HotelRoomFeatures.SAFE))
+                .price(150.00)
+                .build();
+
+        Hotel hotel = Hotel.builder()
+                .id("hotelId")
+                .name("name")
+                .description("description")
+                .picture_list(List.of("https://picture1.jpg", "https://picture2.png"))
+                .amenities(List.of(HotelAmenities.WIFI, HotelAmenities.BAR))
+                .location(hotelLocation)
+                .rooms(List.of(hotelRoom))
+                .build();
+
+        User authenticatedUser = User.builder()
+                .id("authenticatedUserId")
+                .build();
+
+        MockMultipartFile picture = new MockMultipartFile("picture", "picture.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+
+        when(hotelDao.findById(anyString())).thenReturn(Optional.of(hotel));
+        when(imageService.getImageExtension(anyString())).thenReturn(ImageExtension.jpg);
+        when(imageUtils.uploadImage(any())).thenReturn("imageUrl");
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addHotelPicture(authenticatedUser, "hotelId", picture);
+
+        // Assert
+        Hotel expectedHotel = Hotel.builder()
+                .id("hotelId")
+                .name("name")
+                .description("description")
+                .picture_list(List.of("https://picture1.jpg", "https://picture2.png", "imageUrl"))
+                .amenities(List.of(HotelAmenities.WIFI, HotelAmenities.BAR))
+                .location(hotelLocation)
+                .rooms(List.of(hotelRoom))
+                .build();
+
+        InOrder inOrder = inOrder(hotelDao, imageService, imageUtils, hotelDao);
+        inOrder.verify(hotelDao).findById("hotelId");
+        inOrder.verify(imageService).getImageExtension("picture.jpg");
+        inOrder.verify(imageUtils).uploadImage(picture);
+        inOrder.verify(imageService).saveNewImage(ImageCategory.HOTEL, "hotel-image-name.jpg", "imageUrl", ImageExtension.jpg, "authenticatedUserId");
+        inOrder.verify(hotelDao).save(expectedHotel);
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("message", "Picture added successfully"));
+    }
+
+    @Test
+    void shouldReturnNotFound_whenHotelDoesNotExistInDatabase() {
+        // Arrange
+        User authenticatedUser = User.builder()
+                .id("authenticatedUserId")
+                .build();
+
+        MockMultipartFile picture = new MockMultipartFile("picture", "picture.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+
+        when(hotelDao.findById(anyString())).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addHotelPicture(authenticatedUser, "hotelId", picture);
+
+        // Assert
+        verify(hotelDao).findById("hotelId");
+        verifyNoMoreInteractions(hotelDao);
+        verifyNoInteractions(imageService, imageUtils);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "Hotel not found"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenPictureIsInvalid() {
+        // Arrange
+        HotelLocation hotelLocation = HotelLocation.builder()
+                .id("hotelLocationId")
+                .address("address")
+                .city("city")
+                .state("state")
+                .country("country")
+                .postalCode("postalCode")
+                .googleMapsUrl("https://googleMapsUrl")
+                .build();
+
+        HotelRoom hotelRoom = HotelRoom.builder()
+                .id("hotelRoomId")
+                .type(HotelRoomType.DELUXE)
+                .maxOccupancy(8)
+                .features(List.of(HotelRoomFeatures.FLAT_SCREEN_TV, HotelRoomFeatures.SAFE))
+                .price(150.00)
+                .build();
+
+        Hotel hotel = Hotel.builder()
+                .id("hotelId")
+                .name("name")
+                .description("description")
+                .picture_list(List.of("https://picture1.jpg", "https://picture2.png"))
+                .amenities(List.of(HotelAmenities.WIFI, HotelAmenities.BAR))
+                .location(hotelLocation)
+                .rooms(List.of(hotelRoom))
+                .build();
+
+        User authenticatedUser = User.builder()
+                .id("authenticatedUserId")
+                .build();
+
+        MockMultipartFile picture = new MockMultipartFile("picture", "invalid", MediaType.IMAGE_JPEG_VALUE, new byte[]{1, 2, 3, 4, 5});
+
+        when(hotelDao.findById(anyString())).thenReturn(Optional.of(hotel));
+        when(imageService.getImageExtension(anyString())).thenReturn(null);
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.addHotelPicture(authenticatedUser, "hotelId", picture);
+
+        // Assert
+        InOrder inOrder = inOrder(hotelDao, imageService);
+        inOrder.verify(hotelDao).findById("hotelId");
+        inOrder.verify(imageService).getImageExtension("invalid");
+        inOrder.verifyNoMoreInteractions();
+
+        verifyNoMoreInteractions(hotelDao, imageService);
+        verifyNoInteractions(imageUtils);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "The provided picture is invalid or missing"));
+    }
+
     private CreateHotelRoomRequest buildCreateHotelRoomRequest(String hotelId, String type, List<String> features, double price, int maxOccupancy) {
         CreateHotelRoomRequest request = new CreateHotelRoomRequest();
         request.setHotelId(hotelId);

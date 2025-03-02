@@ -1,0 +1,17 @@
+### Add a picture to a hotel - 200
+POST {{url}}/private/admin/hotel/6b465c7e-1eb0-4fed-bdaa-ae2077694b28/picture
+Content-Type: multipart/form-data; boundary=boundary
+Authorization: Bearer {{token}}
+
+--boundary
+Content-Disposition: form-data; name="picture"; filename="hotel1.jpg"
+Content-Type: image/jpeg
+
+< ../resources/hotel-image2.jpeg
+--boundary--
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status);
+    });
+%}

@@ -209,8 +209,26 @@ public class AdminService {
         return ResponseEntity.ok(singletonMap("message", "Hotel deleted successfully"));
     }
 
-    public ResponseEntity<Map<String, String>> addHotelPhoto() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, String>> addHotelPicture(User authenticatedUser, String hotelId, MultipartFile photo) {
+        Optional<Hotel> optionalHotel = hotelDao.findById(hotelId);
+        if (optionalHotel.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "Hotel not found"));
+        }
+
+        Hotel hotel = optionalHotel.get();
+
+        String pictureUrl = processSingleImage(photo, authenticatedUser, hotel.getName());
+        if (isNull(pictureUrl)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "The provided picture is invalid or missing"));
+        }
+
+        List<String> hotelPictures = new ArrayList<>(hotel.getPicture_list());
+        hotelPictures.add(pictureUrl);
+        hotel.setPicture_list(hotelPictures);
+
+        hotelDao.save(hotel);
+
+        return ResponseEntity.ok(singletonMap("message", "Picture added successfully"));
     }
 
     public ResponseEntity<Map<String, String>> deleteHotelPhoto() {
