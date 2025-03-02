@@ -2,10 +2,7 @@ package com.akkorhotel.hotel.controller;
 
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
-import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
-import com.akkorhotel.hotel.model.request.CreateHotelRequest;
-import com.akkorhotel.hotel.model.request.CreateHotelRoomRequest;
-import com.akkorhotel.hotel.model.request.DeleteHotelRoomRequest;
+import com.akkorhotel.hotel.model.request.*;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
@@ -396,6 +393,40 @@ class AdminControllerTest {
         assertThat(capturedHotelId).isEqualTo(hotelId);
         assertThat(capturedFile.getOriginalFilename()).isEqualTo("picture.jpg");
         assertThat(capturedFile.getName()).isEqualTo("picture");
+    }
+
+    @Test
+    void shouldRemoveHotelPicture_whenRequestIsValid() throws Exception {
+        // Arrange
+        String hotelId = "f2cccd2f-5711-4356-a13a-f687dc983ce1";
+
+        String requestBody = """
+        {
+            "pictureLink": "https://mocked-image-url.com/hotel1.jpg"
+        }
+        """;
+
+        when(adminService.deleteHotelPicture(eq(hotelId), any(RemovePictureFromHotelRequest.class)))
+                .thenReturn(ResponseEntity.ok(singletonMap("message", "Picture removed successfully")));
+
+        // Act
+        mockMvc.perform(delete("/private/admin/hotel/{hotelId}/picture", hotelId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Picture removed successfully"));
+
+        // Assert
+        ArgumentCaptor<String> hotelIdCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<RemovePictureFromHotelRequest> requestCaptor = ArgumentCaptor.forClass(RemovePictureFromHotelRequest.class);
+
+        verify(adminService).deleteHotelPicture(hotelIdCaptor.capture(), requestCaptor.capture());
+
+        String capturedHotelId = hotelIdCaptor.getValue();
+        RemovePictureFromHotelRequest capturedRequest = requestCaptor.getValue();
+
+        assertThat(capturedHotelId).isEqualTo(hotelId);
+        assertThat(capturedRequest.getPictureLink()).isEqualTo("https://mocked-image-url.com/hotel1.jpg");
     }
 
 }

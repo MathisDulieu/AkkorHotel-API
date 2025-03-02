@@ -1,0 +1,14 @@
+### Remove a picture from a hotel - 200
+DELETE {{url}}/private/admin/hotel/6b465c7e-1eb0-4fed-bdaa-ae2077694b28/picture
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "pictureLink": "https://res.cloudinary.com/dmerqrfdl/image/upload/v1740776082/mtx20jmrcjwwcn1dk1yj.jpg"
+}
+
+> {%
+    client.test("Check response status", function () {
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status);
+    });
+%}

@@ -2,10 +2,7 @@ package com.akkorhotel.hotel.controller;
 
 
 import com.akkorhotel.hotel.model.User;
-import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
-import com.akkorhotel.hotel.model.request.CreateHotelRequest;
-import com.akkorhotel.hotel.model.request.CreateHotelRoomRequest;
-import com.akkorhotel.hotel.model.request.DeleteHotelRoomRequest;
+import com.akkorhotel.hotel.model.request.*;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
@@ -974,5 +971,72 @@ public class AdminController {
         return adminService.addHotelPicture(authenticatedUser, hotelId, photo);
     }
 
+    @DeleteMapping(value = "/hotel/{hotelId}/picture")
+    @Operation(
+            tags = {"Admin"},
+            summary = "Remove a picture from an existing hotel",
+            description = """
+            Allows an authenticated user to remove a picture from an existing hotel.
+            
+            ## Notes:
+            - The hotel must already exist.
+            - The picture must be in the hotel's list of pictures.
+            - If the hotel does not exist or the picture is not in the list, an error message is returned.
+            """,
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Picture removed successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Successful Picture Removal",
+                                    value = """
+                                    {
+                                        "message": "Picture removed successfully"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request or validation errors",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Picture Not Found in Hotel",
+                                    value = """
+                                    {
+                                        "error": "The picture is not in the hotel's list of pictures"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Hotel not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Hotel Not Found",
+                                    value = """
+                                    {
+                                        "error": "Hotel not found"
+                                    }
+                                    """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> deleteHotelPicture(
+            @PathVariable String hotelId,
+            @org.springframework.web.bind.annotation.RequestBody RemovePictureFromHotelRequest request
+    ) {
+        return adminService.deleteHotelPicture(hotelId, request);
+    }
 
 }

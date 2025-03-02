@@ -4,10 +4,7 @@ import com.akkorhotel.hotel.dao.HotelDao;
 import com.akkorhotel.hotel.dao.HotelRoomDao;
 import com.akkorhotel.hotel.dao.UserDao;
 import com.akkorhotel.hotel.model.*;
-import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
-import com.akkorhotel.hotel.model.request.CreateHotelRequest;
-import com.akkorhotel.hotel.model.request.CreateHotelRoomRequest;
-import com.akkorhotel.hotel.model.request.DeleteHotelRoomRequest;
+import com.akkorhotel.hotel.model.request.*;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.utils.ImageUtils;
@@ -231,8 +228,22 @@ public class AdminService {
         return ResponseEntity.ok(singletonMap("message", "Picture added successfully"));
     }
 
-    public ResponseEntity<Map<String, String>> deleteHotelPhoto() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, String>> deleteHotelPicture(String hotelId, RemovePictureFromHotelRequest request) {
+        Optional<Hotel> optionalHotel = hotelDao.findById(hotelId);
+        if (optionalHotel.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "Hotel not found"));
+        }
+
+        Hotel hotel = optionalHotel.get();
+
+        String error = removedPictureFromHotel(request.getPictureLink(), hotel);
+        if (!isNull(error)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", error));
+        }
+
+        hotelDao.save(hotel);
+
+        return ResponseEntity.ok(singletonMap("message", "Picture removed successfully"));
     }
 
     public ResponseEntity<Map<String, String>> updateHotel() {
@@ -245,6 +256,18 @@ public class AdminService {
 
     public ResponseEntity<Map<String, String>> getAllHotelBookings() {
         return ResponseEntity.ok().build();
+    }
+
+    private String removedPictureFromHotel(String pictureLink, Hotel hotel) {
+        if (!hotel.getPicture_list().contains(pictureLink)) {
+            return "The picture is not in the hotel's list of pictures";
+        }
+
+        List<String> pictureList = new ArrayList<>(hotel.getPicture_list());
+        pictureList.remove(pictureLink);
+        hotel.setPicture_list(pictureList);
+
+        return null;
     }
 
     private String removedHotelRoomFromHotel(Hotel hotel, HotelRoom hotelRoom) {
