@@ -2005,6 +2005,70 @@ class AdminServiceTest {
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "The room is not in the hotel's list of rooms"));
     }
 
+    @Test
+    void shouldDeleteHotel() {
+        // Arrange
+        HotelLocation hotelLocation = HotelLocation.builder()
+                .id("hotelLocationId")
+                .address("address")
+                .city("city")
+                .state("state")
+                .country("country")
+                .postalCode("postalCode")
+                .googleMapsUrl("https://googleMapsUrl")
+                .build();
+
+        HotelRoom hotelRoom = HotelRoom.builder()
+                .id("hotelRoomId")
+                .type(HotelRoomType.DELUXE)
+                .maxOccupancy(8)
+                .features(List.of(HotelRoomFeatures.FLAT_SCREEN_TV, HotelRoomFeatures.SAFE))
+                .price(150.00)
+                .build();
+
+        Hotel hotel = Hotel.builder()
+                .id("hotelId")
+                .name("name")
+                .description("description")
+                .picture_list(List.of("https://picture1.jpg", "https://picture2.png"))
+                .amenities(List.of(HotelAmenities.WIFI, HotelAmenities.BAR))
+                .location(hotelLocation)
+                .rooms(List.of(hotelRoom))
+                .build();
+
+        when(hotelDao.findById(anyString())).thenReturn(Optional.of(hotel));
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.deleteHotel("hotelId");
+
+        // Assert
+        InOrder inOrder = inOrder(hotelDao, hotelRoomDao);
+        inOrder.verify(hotelDao).findById("hotelId");
+        inOrder.verify(hotelRoomDao).delete("hotelRoomId");
+        inOrder.verify(hotelDao).delete("hotelId");
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("message", "Hotel deleted successfully"));
+    }
+
+    @Test
+    void shouldReturnNotFound_whenHotelIsNotFound() {
+        // Arrange
+        when(hotelDao.findById(anyString())).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.deleteHotel("hotelId");
+
+        // Assert
+        verify(hotelDao).findById("hotelId");
+        verifyNoMoreInteractions(hotelDao);
+        verifyNoInteractions(hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "Hotel not found"));
+    }
+
     private CreateHotelRoomRequest buildCreateHotelRoomRequest(String hotelId, String type, List<String> features, double price, int maxOccupancy) {
         CreateHotelRoomRequest request = new CreateHotelRoomRequest();
         request.setHotelId(hotelId);

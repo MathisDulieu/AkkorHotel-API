@@ -829,4 +829,70 @@ public class AdminController {
         return adminService.deleteRoomFromHotel(request);
     }
 
+    @DeleteMapping("/hotel/{hotelId}")
+    @Operation(
+            tags = {"Admin"},
+            summary = "Delete a hotel",
+            description = """
+            Deletes an entire hotel along with all its associated rooms.
+            If the hotel does not exist, an appropriate error is returned.
+            
+            ## Path Parameter:
+            - hotelId: ID of the hotel to be deleted
+            """,
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Hotel deleted successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Successful Deletion",
+                                    value = """
+                                    {
+                                        "message": "Hotel deleted successfully"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Hotel not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Hotel Not Found",
+                                    value = """
+                                    {
+                                        "error": "Hotel not found"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request parameters",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Invalid Parameters",
+                                    value = """
+                                    {
+                                        "error": "Invalid hotel ID format"
+                                    }
+                                    """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> deleteHotel(
+            @PathVariable String hotelId
+    ) {
+        return adminService.deleteHotel(hotelId);
+    }
+
 }

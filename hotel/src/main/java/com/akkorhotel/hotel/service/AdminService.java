@@ -193,6 +193,22 @@ public class AdminService {
         return ResponseEntity.ok(singletonMap("message", "HotelRoom removed successfully"));
     }
 
+    public ResponseEntity<Map<String, String>> deleteHotel(String hotelId) {
+        Optional<Hotel> optionalHotel = hotelDao.findById(hotelId);
+        if (optionalHotel.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "Hotel not found"));
+        }
+
+        Hotel hotel = optionalHotel.get();
+        hotel.getRooms().stream()
+                .map(HotelRoom::getId)
+                .forEach(hotelRoomDao::delete);
+
+        hotelDao.delete(hotelId);
+
+        return ResponseEntity.ok(singletonMap("message", "Hotel deleted successfully"));
+    }
+
     public ResponseEntity<Map<String, String>> addHotelPhoto() {
         return ResponseEntity.ok().build();
     }
@@ -202,10 +218,6 @@ public class AdminService {
     }
 
     public ResponseEntity<Map<String, String>> updateHotel() {
-        return ResponseEntity.ok().build();
-    }
-
-    public ResponseEntity<Map<String, String>> deleteHotel() {
         return ResponseEntity.ok().build();
     }
 

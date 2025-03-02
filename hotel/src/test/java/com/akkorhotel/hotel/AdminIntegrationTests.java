@@ -598,4 +598,86 @@ public class AdminIntegrationTests {
         assertThat(savedHotelRooms).isEmpty();
     }
 
+    @Test
+    void shouldDeleteHotel() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+            {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+                "name": "LuxuryHotel",
+                "description": "A five-star experience.",
+                "picture_list": ["https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg"],
+                "amenities": ["POOL", "WIFI"],
+                "rooms": [
+                    {
+                        "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
+                        "type": "SINGLE",
+                        "price": 120,
+                        "maxOccupancy": 3,
+                        "features": ["ROOM_SERVICE", "BALCONY"]
+                    },
+                    {
+                        "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce3",
+                        "type": "DOUBLE",
+                        "price": 150,
+                        "maxOccupancy": 5,
+                        "features": ["WIFI", "HAIR_DRYER"]
+                    }
+                ],
+                "location": {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce4",
+                    "address": "123 Rue de la Paix",
+                    "city": "Paris",
+                    "state": "Île-de-France",
+                    "country": "France",
+                    "postalCode": "75001",
+                    "googleMapsUrl": "https://maps.google.com/?q=LuxuryHotel"
+                }
+            }
+            """, "HOTELS");
+
+        mongoTemplate.insert("""
+            {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
+                "type": "SINGLE",
+                "price": 120,
+                "maxOccupancy": 3,
+                "features": ["ROOM_SERVICE", "BALCONY"]
+            }
+            """, "HOTEL_ROOMS");
+
+        mongoTemplate.insert("""
+            {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce3",
+                "type": "DOUBLE",
+                "price": 150,
+                "maxOccupancy": 5,
+                "features": ["WIFI", "HAIR_DRYER"]
+            }
+            """, "HOTEL_ROOMS");
+
+        String hotelId = "f2cccd2f-5711-4356-a13a-f687dc983ce1";
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(delete("/private/admin/hotel/{hotelId}", hotelId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + token)
+        );
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.message").value("Hotel deleted successfully"));
+                });
+
+        List<Map> savedHotels = mongoTemplate.findAll(Map.class, "HOTELS");
+        assertThat(savedHotels).isEmpty();
+
+        List<Map> savedHotelRooms = mongoTemplate.findAll(Map.class, "HOTEL_ROOMS");
+        assertThat(savedHotelRooms).isEmpty();
+    }
+
+
 }

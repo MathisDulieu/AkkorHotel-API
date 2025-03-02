@@ -346,5 +346,21 @@ class AdminControllerTest {
         assertThat(capturedRequest.getHotelRoomId()).isEqualTo("roomId");
     }
 
+    @Test
+    void shouldDeleteHotel() throws Exception {
+        // Arrange
+        String hotelId = "hotelId";
+
+        when(adminService.deleteHotel(anyString()))
+                .thenReturn(ResponseEntity.ok(singletonMap("message", "Hotel deleted successfully")));
+
+        // Act & Assert
+        mockMvc.perform(delete("/private/admin/hotel/{hotelId}", hotelId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Hotel deleted successfully"));
+
+        verify(adminService).deleteHotel(hotelId);
+    }
 
 }

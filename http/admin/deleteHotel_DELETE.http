@@ -1,0 +1,10 @@
+### Delete a hotel - 200
+DELETE {{url}}/private/admin/hotel/b717b45f-f3d9-461c-af02-caf1ff05db6b
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+> {%
+    client.test("Check response status", function () {
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status);
+    });
+%}
