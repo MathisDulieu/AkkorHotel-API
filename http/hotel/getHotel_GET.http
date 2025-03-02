@@ -1,0 +1,9 @@
+### Get hotel informations - 200
+GET {{url}}/hotel/6b465c7e-1eb0-4fed-bdaa-ae2077694b28
+Content-Type: application/json
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

@@ -971,7 +971,7 @@ public class AdminController {
         return adminService.addHotelPicture(authenticatedUser, hotelId, photo);
     }
 
-    @DeleteMapping(value = "/hotel/{hotelId}/picture")
+    @DeleteMapping("/hotel/{hotelId}/picture")
     @Operation(
             tags = {"Admin"},
             summary = "Remove a picture from an existing hotel",
