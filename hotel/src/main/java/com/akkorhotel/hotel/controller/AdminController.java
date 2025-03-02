@@ -5,6 +5,7 @@ import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRoomRequest;
+import com.akkorhotel.hotel.model.request.DeleteHotelRoomRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
@@ -722,5 +723,110 @@ public class AdminController {
         return adminService.addRoomToHotel(request);
     }
 
+    @DeleteMapping("/hotel/room")
+    @Operation(
+            tags = {"Admin"},
+            summary = "Delete a room from a hotel",
+            description = """
+            Removes a hotel room from a specific hotel. If the hotel or room does not exist, an appropriate error is returned.
+            
+            ## Request Body:
+            - hotelId: ID of the hotel from which the room should be removed
+            - hotelRoomId: ID of the hotel room to remove
+            """,
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "HotelRoom removed successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Successful Deletion",
+                                    value = """
+                                    {
+                                        "message": "HotelRoom removed successfully"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Hotel or HotelRoom not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Hotel Not Found",
+                                            value = """
+                                            {
+                                                "error": "Hotel not found"
+                                            }
+                                            """
+                                    ),
+                                    @ExampleObject(
+                                            name = "HotelRoom Not Found",
+                                            value = """
+                                            {
+                                                "error": "HotelRoom not found"
+                                            }
+                                            """
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "HotelRoom does not belong to the specified hotel",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Room Not In Hotel",
+                                    value = """
+                                    {
+                                        "error": "The room is not in the hotel's list of rooms"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request parameters",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Missing Parameters",
+                                    value = """
+                                    {
+                                        "error": "hotelId and hotelRoomId must be provided"
+                                    }
+                                    """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> deleteHotelRoom(
+            @RequestBody(
+                    description = "Hotel and room IDs to remove",
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Valid Request",
+                                    value = """
+                                    {
+                                        "hotelId": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+                                        "hotelRoomId": "f2cccd2f-5711-4356-a13a-f687dc983ce2"
+                                    }
+                                    """
+                            )
+                    )
+            ) @org.springframework.web.bind.annotation.RequestBody DeleteHotelRoomRequest request
+    ) {
+        return adminService.deleteRoomFromHotel(request);
+    }
 
 }

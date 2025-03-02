@@ -7,6 +7,7 @@ import com.akkorhotel.hotel.model.*;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRoomRequest;
+import com.akkorhotel.hotel.model.request.DeleteHotelRoomRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.utils.ImageUtils;
@@ -1848,6 +1849,160 @@ class AdminServiceTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "Hotel not found"));
+    }
+
+    @Test
+    void shouldDeleteRoomFromHotel() {
+        // Arrange
+        DeleteHotelRoomRequest request = new DeleteHotelRoomRequest("hotelRoomId", "hotelId");
+
+        HotelLocation hotelLocation = HotelLocation.builder()
+                .id("hotelLocationId")
+                .address("address")
+                .city("city")
+                .state("state")
+                .country("country")
+                .postalCode("postalCode")
+                .googleMapsUrl("https://googleMapsUrl")
+                .build();
+
+        HotelRoom hotelRoom = HotelRoom.builder()
+                .id("hotelRoomId")
+                .type(HotelRoomType.DELUXE)
+                .maxOccupancy(8)
+                .features(List.of(HotelRoomFeatures.FLAT_SCREEN_TV, HotelRoomFeatures.SAFE))
+                .price(150.00)
+                .build();
+
+        Hotel hotel = Hotel.builder()
+                .id("hotelId")
+                .name("name")
+                .description("description")
+                .picture_list(List.of("https://picture1.jpg", "https://picture2.png"))
+                .amenities(List.of(HotelAmenities.WIFI, HotelAmenities.BAR))
+                .location(hotelLocation)
+                .rooms(List.of(hotelRoom))
+                .build();
+
+        when(hotelDao.findById(anyString())).thenReturn(Optional.of(hotel));
+        when(hotelRoomDao.findById(anyString())).thenReturn(Optional.of(hotelRoom));
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.deleteRoomFromHotel(request);
+
+        // Assert
+        Hotel expectedHotel = Hotel.builder()
+                .id("hotelId")
+                .name("name")
+                .description("description")
+                .picture_list(List.of("https://picture1.jpg", "https://picture2.png"))
+                .amenities(List.of(HotelAmenities.WIFI, HotelAmenities.BAR))
+                .location(hotelLocation)
+                .rooms(emptyList())
+                .build();
+
+        InOrder inOrder = inOrder(hotelDao, hotelRoomDao);
+        inOrder.verify(hotelDao).findById("hotelId");
+        inOrder.verify(hotelRoomDao).findById("hotelRoomId");
+        inOrder.verify(hotelDao).save(expectedHotel);
+        inOrder.verify(hotelRoomDao).delete("hotelRoomId");
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("message", "HotelRoom removed successfully"));
+    }
+
+    @Test
+    void shouldReturnNotFound_whenHotelIdDoesNotExist() {
+        // Arrange
+        DeleteHotelRoomRequest request = new DeleteHotelRoomRequest("hotelRoomId", "nonExistentId");
+
+        when(hotelDao.findById("nonExistentId")).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.deleteRoomFromHotel(request);
+
+        // Assert
+        verify(hotelDao).findById("nonExistentId");
+        verifyNoMoreInteractions(hotelDao);
+        verifyNoInteractions(hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "Hotel not found"));
+    }
+
+    @Test
+    void shouldReturnNotFound_whenHotelRoomDoesNotExist() {
+        // Arrange
+        DeleteHotelRoomRequest request = new DeleteHotelRoomRequest("nonExistentId", "hotelId");
+
+        Hotel hotel = Hotel.builder().build();
+
+        when(hotelDao.findById(anyString())).thenReturn(Optional.of(hotel));
+        when(hotelRoomDao.findById(anyString())).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.deleteRoomFromHotel(request);
+
+        // Assert
+        InOrder inOrder = inOrder(hotelDao, hotelRoomDao);
+        inOrder.verify(hotelDao).findById("hotelId");
+        inOrder.verify(hotelRoomDao).findById("nonExistentId");
+        inOrder.verifyNoMoreInteractions();
+
+        verifyNoMoreInteractions(hotelDao, hotelRoomDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "HotelRoom not found"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenHotelRoomIsNotInHotel() {
+        // Arrange
+        DeleteHotelRoomRequest request = new DeleteHotelRoomRequest("hotelRoomId", "hotelId");
+
+        HotelLocation hotelLocation = HotelLocation.builder()
+                .id("hotelLocationId")
+                .address("address")
+                .city("city")
+                .state("state")
+                .country("country")
+                .postalCode("postalCode")
+                .googleMapsUrl("https://googleMapsUrl")
+                .build();
+
+        HotelRoom hotelRoom = HotelRoom.builder()
+                .id("hotelRoomId")
+                .type(HotelRoomType.DELUXE)
+                .maxOccupancy(8)
+                .features(List.of(HotelRoomFeatures.FLAT_SCREEN_TV, HotelRoomFeatures.SAFE))
+                .price(150.00)
+                .build();
+
+        Hotel hotel = Hotel.builder()
+                .id("hotelId")
+                .name("name")
+                .description("description")
+                .picture_list(List.of("https://picture1.jpg", "https://picture2.png"))
+                .amenities(List.of(HotelAmenities.WIFI, HotelAmenities.BAR))
+                .location(hotelLocation)
+                .rooms(emptyList())
+                .build();
+
+        when(hotelDao.findById(anyString())).thenReturn(Optional.of(hotel));
+        when(hotelRoomDao.findById(anyString())).thenReturn(Optional.of(hotelRoom));
+
+        // Act
+        ResponseEntity<Map<String, String>> response = adminService.deleteRoomFromHotel(request);
+
+        // Assert
+        InOrder inOrder = inOrder(hotelDao, hotelRoomDao);
+        inOrder.verify(hotelDao).findById("hotelId");
+        inOrder.verify(hotelRoomDao).findById("hotelRoomId");
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "The room is not in the hotel's list of rooms"));
     }
 
     private CreateHotelRoomRequest buildCreateHotelRoomRequest(String hotelId, String type, List<String> features, double price, int maxOccupancy) {

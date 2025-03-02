@@ -7,6 +7,7 @@ import com.akkorhotel.hotel.model.*;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRoomRequest;
+import com.akkorhotel.hotel.model.request.DeleteHotelRoomRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.utils.ImageUtils;
@@ -167,8 +168,29 @@ public class AdminService {
         return ResponseEntity.ok(singletonMap("message", "HotelRoom added successfully"));
     }
 
-    public ResponseEntity<Map<String, String>> deleteRoomFromHotel() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, String>> deleteRoomFromHotel(DeleteHotelRoomRequest request) {
+        Optional<Hotel> optionalHotel = hotelDao.findById(request.getHotelId());
+        if (optionalHotel.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "Hotel not found"));
+        }
+
+        Optional<HotelRoom> optionalHotelRoom = hotelRoomDao.findById(request.getHotelRoomId());
+        if (optionalHotelRoom.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "HotelRoom not found"));
+        }
+
+        Hotel hotel = optionalHotel.get();
+        HotelRoom hotelRoom = optionalHotelRoom.get();
+
+        String error = removedHotelRoomFromHotel(hotel, hotelRoom);
+        if (!isNull(error)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", error));
+        }
+
+        hotelDao.save(hotel);
+        hotelRoomDao.delete(hotelRoom.getId());
+
+        return ResponseEntity.ok(singletonMap("message", "HotelRoom removed successfully"));
     }
 
     public ResponseEntity<Map<String, String>> addHotelPhoto() {
@@ -193,6 +215,18 @@ public class AdminService {
 
     public ResponseEntity<Map<String, String>> getAllHotelBookings() {
         return ResponseEntity.ok().build();
+    }
+
+    private String removedHotelRoomFromHotel(Hotel hotel, HotelRoom hotelRoom) {
+        if (!hotel.getRooms().contains(hotelRoom)) {
+            return "The room is not in the hotel's list of rooms";
+        }
+
+        List<HotelRoom> hotelRooms = new ArrayList<>(hotel.getRooms());
+        hotelRooms.remove(hotelRoom);
+        hotel.setRooms(hotelRooms);
+
+        return null;
     }
 
     private void validateRequest(List<String> errors, CreateHotelRoomRequest request) {

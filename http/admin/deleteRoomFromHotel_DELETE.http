@@ -1,0 +1,15 @@
+### Delete a room from a hotel - 200
+DELETE {{url}}/private/admin/hotel/room
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "hotelId": "63071351-59b6-4b87-9c76-85f4c6b64c8b",
+  "hotelRoomId": "63822afb-5a4f-4d53-b640-17bfd79bdd98"
+}
+
+> {%
+    client.test("Check response status", function () {
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status);
+    });
+%}

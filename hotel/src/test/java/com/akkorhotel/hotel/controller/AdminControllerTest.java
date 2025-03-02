@@ -5,6 +5,7 @@ import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.request.AdminUpdateUserRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRequest;
 import com.akkorhotel.hotel.model.request.CreateHotelRoomRequest;
+import com.akkorhotel.hotel.model.request.DeleteHotelRoomRequest;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
@@ -315,5 +316,35 @@ class AdminControllerTest {
         assertThat(capturedRequest.getMaxOccupancy()).isEqualTo(1);
         assertThat(capturedRequest.getPrice()).isEqualTo(10.00);
     }
+
+    @Test
+    void shouldDeleteRoomFromHotel() throws Exception {
+        // Arrange
+        String requestBody = """
+        {
+            "hotelId": "hotelId",
+            "hotelRoomId": "roomId"
+        }
+        """;
+
+        ArgumentCaptor<DeleteHotelRoomRequest> requestCaptor = ArgumentCaptor.forClass(DeleteHotelRoomRequest.class);
+
+        when(adminService.deleteRoomFromHotel(any(DeleteHotelRoomRequest.class)))
+                .thenReturn(ResponseEntity.ok(singletonMap("message", "HotelRoom removed successfully")));
+
+        // Act & Assert
+        mockMvc.perform(delete("/private/admin/hotel/room")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("HotelRoom removed successfully"));
+
+        verify(adminService).deleteRoomFromHotel(requestCaptor.capture());
+
+        DeleteHotelRoomRequest capturedRequest = requestCaptor.getValue();
+        assertThat(capturedRequest.getHotelId()).isEqualTo("hotelId");
+        assertThat(capturedRequest.getHotelRoomId()).isEqualTo("roomId");
+    }
+
 
 }
