@@ -106,4 +106,112 @@ public class HotelIntegrationTests {
                 });
     }
 
+    @Test
+    void shouldReturnHotels() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+            {
+                "_id": "hotelId1",
+                "name": "LuxuryHotel",
+                "description": "A five-star experience.",
+                "picture_list": ["https://mocked-image-url.com/hotel1.jpg"],
+                "amenities": ["POOL", "WIFI"],
+                "rooms": [],
+                "location": {
+                    "_id": "locationId1",
+                    "address": "123 Rue de la Paix",
+                    "city": "Paris",
+                    "state": "Île-de-France",
+                    "country": "France",
+                    "postalCode": "75001",
+                    "googleMapsUrl": "https://maps.google.com/?q=LuxuryHotel"
+                }
+            }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+            {
+                "_id": "hotelId2",
+                "name": "LuxurySpa",
+                "description": "Relaxation at its finest.",
+                "picture_list": ["https://mocked-image-url.com/spa1.jpg"],
+                "amenities": ["SPA", "WIFI"],
+                "rooms": [],
+                "location": {
+                    "_id": "locationId2",
+                    "address": "456 Avenue des Champs-Élysées",
+                    "city": "Paris",
+                    "state": "Île-de-France",
+                    "country": "France",
+                    "postalCode": "75008",
+                    "googleMapsUrl": "https://maps.google.com/?q=LuxurySpa"
+                }
+            }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+            {
+                "_id": "hotelId3",
+                "name": "MasterLol",
+                "description": "Relaxation at its finest.",
+                "picture_list": ["https://mocked-image-url.com/spa1.jpg"],
+                "amenities": ["SPA", "WIFI"],
+                "rooms": [],
+                "location": {
+                    "_id": "locationId3",
+                    "address": "456 Avenue des Champs-Élysées",
+                    "city": "Paris",
+                    "state": "Île-de-France",
+                    "country": "France",
+                    "postalCode": "75008",
+                    "googleMapsUrl": "https://maps.google.com/?q=LuxurySpa"
+                }
+            }
+        """, "HOTELS");
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(get("/hotel")
+                .param("keyword", "Luxury")
+                .param("page", "0")
+                .param("pageSize", "10")
+                .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions
+                            .andExpect(status().isOk())
+                            .andExpect(jsonPath("$.informations.hotels[0].id").value("hotelId1"))
+                            .andExpect(jsonPath("$.informations.hotels[0].name").value("LuxuryHotel"))
+                            .andExpect(jsonPath("$.informations.hotels[0].description").value("A five-star experience."))
+                            .andExpect(jsonPath("$.informations.hotels[0].picture_list[0]").value("https://mocked-image-url.com/hotel1.jpg"))
+                            .andExpect(jsonPath("$.informations.hotels[0].amenities[0]").value("POOL"))
+                            .andExpect(jsonPath("$.informations.hotels[0].amenities[1]").value("WIFI"))
+                            .andExpect(jsonPath("$.informations.hotels[0].location.id").value("locationId1"))
+                            .andExpect(jsonPath("$.informations.hotels[0].location.address").value("123 Rue de la Paix"))
+                            .andExpect(jsonPath("$.informations.hotels[0].location.city").value("Paris"))
+                            .andExpect(jsonPath("$.informations.hotels[0].location.state").value("Île-de-France"))
+                            .andExpect(jsonPath("$.informations.hotels[0].location.country").value("France"))
+                            .andExpect(jsonPath("$.informations.hotels[0].location.postalCode").value("75001"))
+                            .andExpect(jsonPath("$.informations.hotels[0].location.googleMapsUrl").value("https://maps.google.com/?q=LuxuryHotel"))
+                            .andExpect(jsonPath("$.informations.hotels[1].id").value("hotelId2"))
+                            .andExpect(jsonPath("$.informations.hotels[1].name").value("LuxurySpa"))
+                            .andExpect(jsonPath("$.informations.hotels[1].description").value("Relaxation at its finest."))
+                            .andExpect(jsonPath("$.informations.hotels[1].picture_list[0]").value("https://mocked-image-url.com/spa1.jpg"))
+                            .andExpect(jsonPath("$.informations.hotels[1].amenities[0]").value("SPA"))
+                            .andExpect(jsonPath("$.informations.hotels[1].amenities[1]").value("WIFI"))
+                            .andExpect(jsonPath("$.informations.hotels[1].location.id").value("locationId2"))
+                            .andExpect(jsonPath("$.informations.hotels[1].location.address").value("456 Avenue des Champs-Élysées"))
+                            .andExpect(jsonPath("$.informations.hotels[1].location.city").value("Paris"))
+                            .andExpect(jsonPath("$.informations.hotels[1].location.state").value("Île-de-France"))
+                            .andExpect(jsonPath("$.informations.hotels[1].location.country").value("France"))
+                            .andExpect(jsonPath("$.informations.hotels[1].location.postalCode").value("75008"))
+                            .andExpect(jsonPath("$.informations.hotels[1].location.googleMapsUrl").value("https://maps.google.com/?q=LuxurySpa"))
+                            .andExpect(jsonPath("$.informations.totalPages").value(1))
+                            .andExpect(jsonPath("$.informations.error").doesNotExist());
+                });
+    }
+
 }

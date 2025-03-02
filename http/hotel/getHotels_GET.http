@@ -1,0 +1,9 @@
+### Get hotels - 200
+GET {{url}}/hotel?keyword=Luxury&page=0&pageSize=10
+Content-Type: application/json
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

@@ -267,4 +267,540 @@ class HotelDaoTest {
                 ));
     }
 
+    @Test
+    void shouldCountHotelsByNamePrefix() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId1",
+            "name": "name1",
+            "picture_list": ["picture1", "picture2"],
+            "amenities": ["PARKING", "BAR"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId1",
+                "address": "address1",
+                "city": "city1",
+                "state": "state1",
+                "country": "country1",
+                "postalCode": "postalCode1",
+                "googleMapsUrl": "googleMapsUrl1"
+            }
+        }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId2",
+            "name": "name2",
+            "picture_list": ["picture3", "picture4"],
+            "amenities": ["RESTAURANT", "WIFI"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId2",
+                "address": "address2",
+                "city": "city2",
+                "state": "state2",
+                "country": "country2",
+                "postalCode": "postalCode2",
+                "googleMapsUrl": "googleMapsUrl2"
+            }
+        }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId3",
+            "name": "anotherName",
+            "picture_list": ["picture5", "picture6"],
+            "amenities": ["RESTAURANT", "WIFI"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId3",
+                "address": "address3",
+                "city": "city3",
+                "state": "state3",
+                "country": "country3",
+                "postalCode": "postalCode3",
+                "googleMapsUrl": "googleMapsUrl3"
+            }
+        }
+        """, "HOTELS");
+
+        // Act
+        long count = hotelDao.countHotelsByNamePrefix("name");
+
+        // Assert
+        assertThat(count).isEqualTo(2);
+    }
+
+    @Test
+    void shouldReturnZero_whenNoHotelExist() {
+        // Act
+        long count = hotelDao.countHotelsByNamePrefix("any");
+
+        // Assert
+        assertThat(count).isEqualTo(0);
+    }
+
+    @Test
+    void shouldReturnAllHotelsCount_whenEmptyPrefixIsSet() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId1",
+            "name": "name1",
+            "picture_list": ["picture1", "picture2"],
+            "amenities": ["PARKING", "BAR"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId1",
+                "address": "address1",
+                "city": "city1",
+                "state": "state1",
+                "country": "country1",
+                "postalCode": "postalCode1",
+                "googleMapsUrl": "googleMapsUrl1"
+            }
+        }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId2",
+            "name": "name2",
+            "picture_list": ["picture3", "picture4"],
+            "amenities": ["RESTAURANT", "WIFI"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId2",
+                "address": "address2",
+                "city": "city2",
+                "state": "state2",
+                "country": "country2",
+                "postalCode": "postalCode2",
+                "googleMapsUrl": "googleMapsUrl2"
+            }
+        }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId3",
+            "name": "anotherName",
+            "picture_list": ["picture5", "picture6"],
+            "amenities": ["RESTAURANT", "WIFI"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId3",
+                "address": "address3",
+                "city": "city3",
+                "state": "state3",
+                "country": "country3",
+                "postalCode": "postalCode3",
+                "googleMapsUrl": "googleMapsUrl3"
+            }
+        }
+        """, "HOTELS");
+
+        // Act
+        long count = hotelDao.countHotelsByNamePrefix("");
+
+        // Assert
+        assertThat(count).isEqualTo(3);
+    }
+
+    @Test
+    void shouldReturnHotelsMatchingPrefix() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId1",
+            "name": "name1",
+            "picture_list": ["picture1", "picture2"],
+            "amenities": ["PARKING", "BAR"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId1",
+                "address": "address1",
+                "city": "city1",
+                "state": "state1",
+                "country": "country1",
+                "postalCode": "postalCode1",
+                "googleMapsUrl": "googleMapsUrl1"
+            }
+        }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId2",
+            "name": "name2",
+            "picture_list": ["picture3", "picture4"],
+            "amenities": ["RESTAURANT", "WIFI"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId2",
+                "address": "address2",
+                "city": "city2",
+                "state": "state2",
+                "country": "country2",
+                "postalCode": "postalCode2",
+                "googleMapsUrl": "googleMapsUrl2"
+            }
+        }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId3",
+            "name": "anotherName",
+            "picture_list": ["picture5", "picture6"],
+            "amenities": ["RESTAURANT", "WIFI"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId3",
+                "address": "address3",
+                "city": "city3",
+                "state": "state3",
+                "country": "country3",
+                "postalCode": "postalCode3",
+                "googleMapsUrl": "googleMapsUrl3"
+            }
+        }
+        """, "HOTELS");
+
+        // Act
+        List<Hotel> hotels = hotelDao.searchHotelsByNamePrefix("name", 0, 10);
+
+        // Assert
+        assertThat(hotels).hasSize(2);
+        assertThat(hotels).containsExactlyInAnyOrder(
+                Hotel.builder()
+                        .id("hotelId1")
+                        .name("name1")
+                        .picture_list(List.of("picture1", "picture2"))
+                        .amenities(List.of(HotelAmenities.PARKING, HotelAmenities.BAR))
+                        .rooms(emptyList())
+                        .location(HotelLocation.builder()
+                                .id("locationId1")
+                                .address("address1")
+                                .city("city1")
+                                .state("state1")
+                                .country("country1")
+                                .postalCode("postalCode1")
+                                .googleMapsUrl("googleMapsUrl1")
+                                .build())
+                        .build(),
+                Hotel.builder()
+                        .id("hotelId2")
+                        .name("name2")
+                        .picture_list(List.of("picture3", "picture4"))
+                        .amenities(List.of(HotelAmenities.RESTAURANT, HotelAmenities.WIFI))
+                        .rooms(emptyList())
+                        .location(HotelLocation.builder()
+                                .id("locationId2")
+                                .address("address2")
+                                .city("city2")
+                                .state("state2")
+                                .country("country2")
+                                .postalCode("postalCode2")
+                                .googleMapsUrl("googleMapsUrl2")
+                                .build())
+                        .build()
+        );
+    }
+
+    @Test
+    void shouldReturnPaginatedResults() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId1",
+            "name": "name1",
+            "picture_list": ["picture1", "picture2"],
+            "amenities": ["PARKING", "BAR"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId1",
+                "address": "address1",
+                "city": "city1",
+                "state": "state1",
+                "country": "country1",
+                "postalCode": "postalCode1",
+                "googleMapsUrl": "googleMapsUrl1"
+            }
+        }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId2",
+            "name": "name2",
+            "picture_list": ["picture3", "picture4"],
+            "amenities": ["RESTAURANT", "WIFI"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId2",
+                "address": "address2",
+                "city": "city2",
+                "state": "state2",
+                "country": "country2",
+                "postalCode": "postalCode2",
+                "googleMapsUrl": "googleMapsUrl2"
+            }
+        }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId3",
+            "name": "name3",
+            "picture_list": ["picture5", "picture6"],
+            "amenities": ["RESTAURANT", "WIFI"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId3",
+                "address": "address3",
+                "city": "city3",
+                "state": "state3",
+                "country": "country3",
+                "postalCode": "postalCode3",
+                "googleMapsUrl": "googleMapsUrl3"
+            }
+        }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId4",
+            "name": "name4",
+            "picture_list": ["picture7", "picture8"],
+            "amenities": ["RESTAURANT", "WIFI"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId4",
+                "address": "address4",
+                "city": "city4",
+                "state": "state4",
+                "country": "country4",
+                "postalCode": "postalCode4",
+                "googleMapsUrl": "googleMapsUrl4"
+            }
+        }
+        """, "HOTELS");
+
+        // Act
+        List<Hotel> hotels = hotelDao.searchHotelsByNamePrefix("name", 0, 2);
+
+        // Assert
+        assertThat(hotels).hasSize(2);
+        assertThat(hotels).containsExactlyInAnyOrder(
+                Hotel.builder()
+                        .id("hotelId1")
+                        .name("name1")
+                        .picture_list(List.of("picture1", "picture2"))
+                        .amenities(List.of(HotelAmenities.PARKING, HotelAmenities.BAR))
+                        .rooms(emptyList())
+                        .location(HotelLocation.builder()
+                                .id("locationId1")
+                                .address("address1")
+                                .city("city1")
+                                .state("state1")
+                                .country("country1")
+                                .postalCode("postalCode1")
+                                .googleMapsUrl("googleMapsUrl1")
+                                .build())
+                        .build(),
+                Hotel.builder()
+                        .id("hotelId2")
+                        .name("name2")
+                        .picture_list(List.of("picture3", "picture4"))
+                        .amenities(List.of(HotelAmenities.RESTAURANT, HotelAmenities.WIFI))
+                        .rooms(emptyList())
+                        .location(HotelLocation.builder()
+                                .id("locationId2")
+                                .address("address2")
+                                .city("city2")
+                                .state("state2")
+                                .country("country2")
+                                .postalCode("postalCode2")
+                                .googleMapsUrl("googleMapsUrl2")
+                                .build())
+                        .build()
+        );
+    }
+
+    @Test
+    void shouldReturnHotelsSortedAlphabetically() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId1",
+            "name": "nameA2",
+            "picture_list": ["picture1", "picture2"],
+            "amenities": ["PARKING", "BAR"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId1",
+                "address": "address1",
+                "city": "city1",
+                "state": "state1",
+                "country": "country1",
+                "postalCode": "postalCode1",
+                "googleMapsUrl": "googleMapsUrl1"
+            }
+        }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId2",
+            "name": "nameA1",
+            "picture_list": ["picture3", "picture4"],
+            "amenities": ["RESTAURANT", "WIFI"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId2",
+                "address": "address2",
+                "city": "city2",
+                "state": "state2",
+                "country": "country2",
+                "postalCode": "postalCode2",
+                "googleMapsUrl": "googleMapsUrl2"
+            }
+        }
+        """, "HOTELS");
+
+        // Act
+        List<Hotel> hotels = hotelDao.searchHotelsByNamePrefix("name", 0, 10);
+
+        // Assert
+        assertThat(hotels).containsExactly(
+                Hotel.builder()
+                        .id("hotelId2")
+                        .name("nameA1")
+                        .picture_list(List.of("picture3", "picture4"))
+                        .amenities(List.of(HotelAmenities.RESTAURANT, HotelAmenities.WIFI))
+                        .rooms(emptyList())
+                        .location(HotelLocation.builder()
+                                .id("locationId2")
+                                .address("address2")
+                                .city("city2")
+                                .state("state2")
+                                .country("country2")
+                                .postalCode("postalCode2")
+                                .googleMapsUrl("googleMapsUrl2")
+                                .build())
+                        .build(),
+                Hotel.builder()
+                        .id("hotelId1")
+                        .name("nameA2")
+                        .picture_list(List.of("picture1", "picture2"))
+                        .amenities(List.of(HotelAmenities.PARKING, HotelAmenities.BAR))
+                        .rooms(emptyList())
+                        .location(HotelLocation.builder()
+                                .id("locationId1")
+                                .address("address1")
+                                .city("city1")
+                                .state("state1")
+                                .country("country1")
+                                .postalCode("postalCode1")
+                                .googleMapsUrl("googleMapsUrl1")
+                                .build())
+                        .build()
+        );
+    }
+
+    @Test
+    void shouldReturnEmptyList_whenNoMatchingHotel() {
+        // Act
+        List<Hotel> hotels = hotelDao.searchHotelsByNamePrefix("name", 0, 10);
+
+        // Assert
+        assertThat(hotels).isEmpty();
+    }
+
+    @Test
+    void shouldReturnAllHotels_whenEmptyPrefixIsSet() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId1",
+            "name": "name1",
+            "picture_list": ["picture1", "picture2"],
+            "amenities": ["PARKING", "BAR"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId1",
+                "address": "address1",
+                "city": "city1",
+                "state": "state1",
+                "country": "country1",
+                "postalCode": "postalCode1",
+                "googleMapsUrl": "googleMapsUrl1"
+            }
+        }
+        """, "HOTELS");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId2",
+            "name": "name2",
+            "picture_list": ["picture3", "picture4"],
+            "amenities": ["RESTAURANT", "WIFI"],
+            "rooms": [],
+            "location": {
+                "_id": "locationId2",
+                "address": "address2",
+                "city": "city2",
+                "state": "state2",
+                "country": "country2",
+                "postalCode": "postalCode2",
+                "googleMapsUrl": "googleMapsUrl2"
+            }
+        }
+        """, "HOTELS");
+
+        // Act
+        List<Hotel> hotels = hotelDao.searchHotelsByNamePrefix("", 0, 10);
+
+        // Assert
+        assertThat(hotels).hasSize(2);
+        assertThat(hotels).containsExactlyInAnyOrder(
+                Hotel.builder()
+                        .id("hotelId1")
+                        .name("name1")
+                        .picture_list(List.of("picture1", "picture2"))
+                        .amenities(List.of(HotelAmenities.PARKING, HotelAmenities.BAR))
+                        .rooms(emptyList())
+                        .location(HotelLocation.builder()
+                                .id("locationId1")
+                                .address("address1")
+                                .city("city1")
+                                .state("state1")
+                                .country("country1")
+                                .postalCode("postalCode1")
+                                .googleMapsUrl("googleMapsUrl1")
+                                .build())
+                        .build(),
+                Hotel.builder()
+                        .id("hotelId2")
+                        .name("name2")
+                        .picture_list(List.of("picture3", "picture4"))
+                        .amenities(List.of(HotelAmenities.RESTAURANT, HotelAmenities.WIFI))
+                        .rooms(emptyList())
+                        .location(HotelLocation.builder()
+                                .id("locationId2")
+                                .address("address2")
+                                .city("city2")
+                                .state("state2")
+                                .country("country2")
+                                .postalCode("postalCode2")
+                                .googleMapsUrl("googleMapsUrl2")
+                                .build())
+                        .build()
+        );
+    }
+
 }
