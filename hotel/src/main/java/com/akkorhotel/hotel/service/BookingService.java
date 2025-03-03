@@ -1,19 +1,83 @@
 package com.akkorhotel.hotel.service;
 
+import com.akkorhotel.hotel.configuration.DateConfiguration;
 import com.akkorhotel.hotel.dao.BookingDao;
+import com.akkorhotel.hotel.dao.HotelDao;
+import com.akkorhotel.hotel.dao.HotelRoomDao;
+import com.akkorhotel.hotel.model.Booking;
+import com.akkorhotel.hotel.model.Hotel;
+import com.akkorhotel.hotel.model.HotelRoom;
+import com.akkorhotel.hotel.model.request.CreateBookingRequest;
+import com.akkorhotel.hotel.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+
+import static java.util.Collections.singletonMap;
+import static java.util.Objects.isNull;
 
 @Service
 @RequiredArgsConstructor
 public class BookingService {
 
     private final BookingDao bookingDao;
-    private final JwtTokenService jwtToken;
+    private final UuidProvider uuidProvider;
+    private final UserUtils userUtils;
+    private final HotelDao hotelDao;
+    private final HotelRoomDao hotelRoomDao;
+    private final DateConfiguration dateConfiguration;
 
-    public ResponseEntity<String> createBooking() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, String>> createBooking(String authenticatedUserId, CreateBookingRequest request) {
+        List<String> errors = new ArrayList<>();
+        validateRequest(errors, request);
+        if (!errors.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("errors", userUtils.getErrorsAsString(errors)));
+        }
+
+        Optional<Hotel> optionalHotel = hotelDao.findById(request.getHotelId());
+        if (optionalHotel.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "Hotel not found"));
+        }
+
+        Hotel hotel = optionalHotel.get();
+
+        Optional<HotelRoom> optionalHotelRoom = hotelRoomDao.findById(request.getHotelRoomId());
+        if (optionalHotelRoom.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "HotelRoom not found"));
+        }
+
+        HotelRoom hotelRoom = optionalHotelRoom.get();
+
+        if (!hotel.getRooms().contains(hotelRoom)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "The specified hotel room was not found in the hotel's room list"));
+        }
+
+        if (request.getGuests() > hotelRoom.getMaxOccupancy()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "The number of guests exceeds the maximum occupancy for this hotel room"));
+        }
+
+        double totalPrice = calculateTotalPrice(request.getCheckInDate(), request.getCheckOutDate(), hotelRoom.getPrice());
+
+        Booking booking = Booking.builder()
+                .id(uuidProvider.generateUuid())
+                .totalPrice(totalPrice)
+                .guests(request.getGuests())
+                .userId(authenticatedUserId)
+                .checkInDate(request.getCheckInDate())
+                .checkOutDate(request.getCheckOutDate())
+                .hotelRoom(hotelRoom)
+                .hotel(hotel)
+                .build();
+
+        bookingDao.save(booking);
+
+        return ResponseEntity.ok(singletonMap("message", "Booking created successfully"));
     }
 
     public ResponseEntity<String> getBooking() {
@@ -31,4 +95,34 @@ public class BookingService {
     public ResponseEntity<String> listBookings() {
         return ResponseEntity.ok().build();
     }
+
+    private void validateRequest(List<String> errors, CreateBookingRequest request) {
+        if (request.getGuests() <= 0) {
+            errors.add("The number of guests must be greater than zero");
+        }
+
+        Date today = dateConfiguration.newDate();
+
+        if (isNull(request.getCheckInDate())) {
+            errors.add("Check-in date is required");
+        } else if (!request.getCheckInDate().after(today)) {
+            errors.add("Check-in date must be after today's date");
+        }
+
+        if (isNull(request.getCheckOutDate())) {
+            errors.add("Check-out date is required");
+        } else if (request.getCheckInDate() != null && !request.getCheckOutDate().after(request.getCheckInDate())) {
+            errors.add("Check-out date must be after check-in date");
+        }
+    }
+
+    private double calculateTotalPrice(Date checkInDate, Date checkOutDate, double roomPrice) {
+        LocalDate checkInLocalDate = checkInDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate checkOutLocalDate = checkOutDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+        long numberOfNights = ChronoUnit.DAYS.between(checkInLocalDate, checkOutLocalDate);
+
+        return roomPrice * numberOfNights;
+    }
+
 }

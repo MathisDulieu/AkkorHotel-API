@@ -14,21 +14,19 @@ class BookingTest {
         // Arrange
         Booking booking = Booking.builder()
                 .id("id")
-                .user(User.builder().id("id").build())
+                .userId("id")
                 .hotel(Hotel.builder().id("id").build())
                 .hotelRoom(HotelRoom.builder().id("id").build())
                 .checkInDate(new Date(1677628800000L))
                 .checkOutDate(new Date(1677715200000L))
                 .guests(2)
                 .totalPrice(568)
-                .specialRequest("specialRequest")
                 .build();
 
         // Assert
         assertThat(booking.getId()).isEqualTo("id");
 
-        assertThat(booking.getUser()).isNotNull();
-        assertThat(booking.getUser().getId()).isEqualTo("id");
+        assertThat(booking.getUserId()).isEqualTo("id");
 
         assertThat(booking.getHotel()).isNotNull();
         assertThat(booking.getHotel().getId()).isEqualTo("id");
@@ -40,7 +38,6 @@ class BookingTest {
         assertThat(booking.getCheckOutDate()).isEqualTo(new Date(1677715200000L));
         assertThat(booking.getGuests()).isEqualTo(2);
         assertThat(booking.getTotalPrice()).isEqualTo(568);
-        assertThat(booking.getSpecialRequest()).isEqualTo("specialRequest");
 
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.PENDING);
     }
@@ -48,16 +45,6 @@ class BookingTest {
     @Test
     void shouldOverrideBookingDefaultValuesWhenSpecified() {
         // Arrange
-        User user = User.builder()
-                .id("id")
-                .isValidEmail(true)
-                .role(UserRole.ADMIN)
-                .username("username")
-                .email("email")
-                .password("password")
-                .profileImageUrl("profileImageUrl")
-                .build();
-
         Hotel hotel = Hotel.builder()
                 .id("id")
                 .name("name")
@@ -102,14 +89,13 @@ class BookingTest {
 
         Booking booking = Booking.builder()
                 .id("id")
-                .user(user)
+                .userId("userId")
                 .hotel(hotel)
                 .hotelRoom(hotelRoom)
                 .checkInDate(new Date(1677628800000L))
                 .checkOutDate(new Date(1677715200000L))
                 .guests(2)
                 .totalPrice(568)
-                .specialRequest("specialRequest")
                 .isPaid(true)
                 .status(BookingStatus.CONFIRMED)
                 .build();
@@ -120,18 +106,10 @@ class BookingTest {
         assertThat(booking.getCheckOutDate()).isEqualTo(new Date(1677715200000L));
         assertThat(booking.getGuests()).isEqualTo(2);
         assertThat(booking.getTotalPrice()).isEqualTo(568);
-        assertThat(booking.getSpecialRequest()).isEqualTo("specialRequest");
         assertThat(booking.isPaid()).isTrue();
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
 
-        assertThat(booking.getUser()).isNotNull();
-        assertThat(booking.getUser().getId()).isEqualTo("id");
-        assertThat(booking.getUser().getUsername()).isEqualTo("username");
-        assertThat(booking.getUser().getEmail()).isEqualTo("email");
-        assertThat(booking.getUser().getPassword()).isEqualTo("password");
-        assertThat(booking.getUser().getIsValidEmail()).isTrue();
-        assertThat(booking.getUser().getRole()).isEqualTo(UserRole.ADMIN);
-        assertThat(booking.getUser().getProfileImageUrl()).isEqualTo("profileImageUrl");
+        assertThat(booking.getUserId()).isEqualTo("userId");
 
         assertThat(booking.getHotel()).isNotNull();
         assertThat(booking.getHotel().getId()).isEqualTo("id");

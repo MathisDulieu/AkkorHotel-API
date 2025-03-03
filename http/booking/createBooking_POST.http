@@ -1,0 +1,18 @@
+### Create a Booking - 200
+POST {{url}}/private/booking
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "hotelId": "6b465c7e-1eb0-4fed-bdaa-ae2077694b28",
+  "hotelRoomId": "9fbd8ccb-ff15-4952-813e-84282574cd96",
+  "guests": 4,
+  "checkInDate": "2025-03-14T18:00:00",
+  "checkOutDate": "2025-03-15T12:00:00"
+}
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

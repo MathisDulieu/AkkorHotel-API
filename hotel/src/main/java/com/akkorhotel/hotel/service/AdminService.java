@@ -247,6 +247,7 @@ public class AdminService {
     }
 
     public ResponseEntity<Map<String, String>> updateHotel() {
+        //TODO update bookings too
         return ResponseEntity.ok().build();
     }
 
