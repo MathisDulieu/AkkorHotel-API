@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -227,5 +228,107 @@ public class BookingIntegrationTests {
                 ));
     }
 
+    @Test
+    void shouldRetrieveBooking() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+            "userId": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
+            "status": "CONFIRMED",
+            "isPaid": true,
+            "totalPrice": 600.0,
+            "checkInDate": { "$date": "2025-03-10T14:00:00.000Z" },
+            "checkOutDate": { "$date": "2025-03-15T12:00:00.000Z" },
+            "guests": 3,
+            "hotelRoom": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
+                "type": "SINGLE",
+                "price": 120,
+                "maxOccupancy": 3,
+                "features": ["ROOM_SERVICE", "BALCONY"]
+            },
+            "hotel": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce3",
+                "name": "HotelParadise",
+                "picture_list": ["https://example.com/pic1.jpg", "https://example.com/pic2.jpg"],
+                "amenities": ["PARKING", "BAR", "POOL", "GYM"],
+                "rooms": [
+                    {
+                        "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
+                        "type": "SINGLE",
+                        "price": 120,
+                        "maxOccupancy": 3,
+                        "features": ["ROOM_SERVICE", "BALCONY"]
+                    },
+                    {
+                        "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce4",
+                        "type": "DOUBLE",
+                        "price": 150,
+                        "maxOccupancy": 5,
+                        "features": ["WIFI", "HAIR_DRYER"]
+                    }
+                ],
+                "location": {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce5",
+                    "address": "123 Paradise St",
+                    "city": "Paradise City",
+                    "state": "California",
+                    "country": "USA",
+                    "postalCode": "90210",
+                    "googleMapsUrl": "https://maps.google.com/?q=123+Paradise+St"
+                }
+            }
+        }
+        """, "BOOKING");
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(get("/private/booking/{bookingId}", "f2cccd2f-5711-4356-a13a-f687dc983ce1")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON));
+
+        // Assert
+        resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.informations.booking.id").value("f2cccd2f-5711-4356-a13a-f687dc983ce1"))
+                .andExpect(jsonPath("$.informations.booking.userId").value("f2cccd2f-5711-4356-a13a-f687dc983ce9"))
+                .andExpect(jsonPath("$.informations.booking.status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.informations.booking.paid").value(true))
+                .andExpect(jsonPath("$.informations.booking.totalPrice").value(600.0))
+                .andExpect(jsonPath("$.informations.booking.checkInDate").value(new Date(1741615200000L)))
+                .andExpect(jsonPath("$.informations.booking.checkOutDate").value(new Date(1742040000000L)))
+                .andExpect(jsonPath("$.informations.booking.guests").value(3))
+                .andExpect(jsonPath("$.informations.booking.hotelRoom.id").value("f2cccd2f-5711-4356-a13a-f687dc983ce2"))
+                .andExpect(jsonPath("$.informations.booking.hotelRoom.type").value("SINGLE"))
+                .andExpect(jsonPath("$.informations.booking.hotelRoom.price").value(120))
+                .andExpect(jsonPath("$.informations.booking.hotelRoom.maxOccupancy").value(3))
+                .andExpect(jsonPath("$.informations.booking.hotelRoom.features[0]").value("ROOM_SERVICE"))
+                .andExpect(jsonPath("$.informations.booking.hotelRoom.features[1]").value("BALCONY"))
+                .andExpect(jsonPath("$.informations.booking.hotel.id").value("f2cccd2f-5711-4356-a13a-f687dc983ce3"))
+                .andExpect(jsonPath("$.informations.booking.hotel.name").value("HotelParadise"))
+                .andExpect(jsonPath("$.informations.booking.hotel.picture_list[0]").value("https://example.com/pic1.jpg"))
+                .andExpect(jsonPath("$.informations.booking.hotel.picture_list[1]").value("https://example.com/pic2.jpg"))
+                .andExpect(jsonPath("$.informations.booking.hotel.amenities[0]").value("PARKING"))
+                .andExpect(jsonPath("$.informations.booking.hotel.amenities[1]").value("BAR"))
+                .andExpect(jsonPath("$.informations.booking.hotel.amenities[2]").value("POOL"))
+                .andExpect(jsonPath("$.informations.booking.hotel.amenities[3]").value("GYM"))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[0].id").value("f2cccd2f-5711-4356-a13a-f687dc983ce2"))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[0].type").value("SINGLE"))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[0].price").value(120))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[0].maxOccupancy").value(3))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[0].features[0]").value("ROOM_SERVICE"))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[0].features[1]").value("BALCONY"))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[1].id").value("f2cccd2f-5711-4356-a13a-f687dc983ce4"))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[1].type").value("DOUBLE"))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[1].price").value(150))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[1].maxOccupancy").value(5))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[1].features[0]").value("WIFI"))
+                .andExpect(jsonPath("$.informations.booking.hotel.rooms[1].features[1]").value("HAIR_DRYER"))
+                .andExpect(jsonPath("$.informations.booking.hotel.location.address").value("123 Paradise St"))
+                .andExpect(jsonPath("$.informations.booking.hotel.location.city").value("Paradise City"))
+                .andExpect(jsonPath("$.informations.booking.hotel.location.state").value("California"))
+                .andExpect(jsonPath("$.informations.booking.hotel.location.country").value("USA"))
+                .andExpect(jsonPath("$.informations.booking.hotel.location.postalCode").value("90210"))
+                .andExpect(jsonPath("$.informations.booking.hotel.location.googleMapsUrl").value("https://maps.google.com/?q=123+Paradise+St"));
+    }
 
 }

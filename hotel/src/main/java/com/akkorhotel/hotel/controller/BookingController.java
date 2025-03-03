@@ -2,6 +2,7 @@ package com.akkorhotel.hotel.controller;
 
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.CreateBookingRequest;
+import com.akkorhotel.hotel.model.response.GetBookingResponse;
 import com.akkorhotel.hotel.service.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,9 +14,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -177,6 +176,105 @@ public class BookingController {
             )) @org.springframework.web.bind.annotation.RequestBody CreateBookingRequest request) {
 
         return bookingService.createBooking(authenticatedUser.getId(), request);
+    }
+
+    @GetMapping("/{bookingId}")
+    @Operation(
+            tags = {"Booking"},
+            summary = "Retrieve a booking by ID",
+            description = """
+            Retrieves booking details for the authenticated user.
+    
+            ## Notes:
+            - The user must be authenticated via a bearer token.
+            - Only the owner of the booking can access the booking details.
+            - Returns 404 if the booking does not exist.
+            - Returns 403 if the authenticated user does not own the booking.
+            """,
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Booking retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Booking Found",
+                                    value = """
+                                    {
+                                        "informations": {
+                                            "_id": "bookingId123",
+                                            "userId": "userId456",
+                                            "status": "PENDING",
+                                            "isPaid": false,
+                                            "totalPrice": 600.0,
+                                            "checkInDate": "2025-03-10T14:00:00",
+                                            "checkOutDate": "2025-03-15T12:00:00",
+                                            "guests": 3,
+                                            "hotelRoom": {
+                                                "_id": "hotelRoomId123",
+                                                "price": 120.0,
+                                                "maxOccupancy": 3,
+                                                "features": ["ROOM_SERVICE", "BALCONY"],
+                                                "type": "SINGLE"
+                                            },
+                                            "hotel": {
+                                                "_id": "hotelId123",
+                                                "name": "Hotel Paradise",
+                                                "picture_list": [
+                                                    "https://example.com/pic1.jpg",
+                                                    "https://example.com/pic2.jpg"
+                                                ],
+                                                "amenities": ["PARKING", "BAR", "POOL"],
+                                                "location": {
+                                                    "address": "123 Paradise St",
+                                                    "city": "Paradise City",
+                                                    "country": "USA"
+                                                }
+                                            }
+                                        }
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "User does not have permission to access this booking",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Access Denied",
+                                    value = """
+                                    {
+                                        "error": "You do not have permission to access this booking"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Booking not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Booking Not Found",
+                                    value = """
+                                    {
+                                        "error": "Booking not found"
+                                    }
+                                    """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, GetBookingResponse>> getBooking(
+            @AuthenticationPrincipal User authenticatedUser,
+            @PathVariable String bookingId
+    ) {
+        return bookingService.getBooking(authenticatedUser.getId(), bookingId);
     }
 
 }

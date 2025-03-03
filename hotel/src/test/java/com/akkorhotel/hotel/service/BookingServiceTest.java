@@ -9,6 +9,7 @@ import com.akkorhotel.hotel.model.BookingStatus;
 import com.akkorhotel.hotel.model.Hotel;
 import com.akkorhotel.hotel.model.HotelRoom;
 import com.akkorhotel.hotel.model.request.CreateBookingRequest;
+import com.akkorhotel.hotel.model.response.GetBookingResponse;
 import com.akkorhotel.hotel.utils.UserUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -368,6 +369,107 @@ class BookingServiceTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "The number of guests exceeds the maximum occupancy for this hotel room"));
+    }
+
+    @Test
+    void shouldReturnBooking() {
+        // Arrange
+        String authenticatedUserId = "userId";
+        String bookingId = "bookingId";
+
+        HotelRoom hotelRoom = HotelRoom.builder().id("hotelRoomId").maxOccupancy(5).price(100.00).build();
+        Hotel hotel = Hotel.builder().id("hotelId").rooms(List.of(hotelRoom)).build();
+
+        Booking booking = Booking.builder()
+                .id("bookingId")
+                .userId("userId")
+                .hotel(hotel)
+                .hotelRoom(hotelRoom)
+                .checkInDate(new Date(1677628800000L))
+                .checkOutDate(new Date(1677715200000L))
+                .guests(3)
+                .totalPrice(100.00)
+                .isPaid(false)
+                .status(BookingStatus.PENDING)
+                .build();
+
+        when(bookingDao.findById(anyString())).thenReturn(Optional.of(booking));
+
+        // Act
+        ResponseEntity<Map<String, GetBookingResponse>> response = bookingService.getBooking(authenticatedUserId, bookingId);
+
+        // Assert
+        GetBookingResponse expectedResponse = GetBookingResponse.builder()
+                .booking(booking)
+                .build();
+
+        verify(bookingDao).findById(bookingId);
+        verifyNoMoreInteractions(bookingDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("informations", expectedResponse));
+    }
+
+    @Test
+    void shouldReturnNotFound_whenBookingDoesNotExist() {
+        // Arrange
+        String authenticatedUserId = "userId";
+        String bookingId = "bookingId";
+
+        when(bookingDao.findById(anyString())).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Map<String, GetBookingResponse>> response = bookingService.getBooking(authenticatedUserId, bookingId);
+
+        // Assert
+        GetBookingResponse expectedResponse = GetBookingResponse.builder()
+                .error("Booking not found")
+                .build();
+
+        verify(bookingDao).findById(bookingId);
+        verifyNoMoreInteractions(bookingDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", expectedResponse));
+    }
+
+    @Test
+    void shouldReturnForbidden_whenUserIsNotOwnerOfBooking() {
+        // Arrange
+        String authenticatedUserId = "userId";
+        String bookingId = "bookingId";
+
+        HotelRoom hotelRoom = HotelRoom.builder().id("hotelRoomId").maxOccupancy(5).price(100.00).build();
+        Hotel hotel = Hotel.builder().id("hotelId").rooms(List.of(hotelRoom)).build();
+
+        Booking booking = Booking.builder()
+                .id("bookingId")
+                .userId("otherUserId")
+                .hotel(hotel)
+                .hotelRoom(hotelRoom)
+                .checkInDate(new Date(1677628800000L))
+                .checkOutDate(new Date(1677715200000L))
+                .guests(3)
+                .totalPrice(100.00)
+                .isPaid(false)
+                .status(BookingStatus.PENDING)
+                .build();
+
+        when(bookingDao.findById(anyString())).thenReturn(Optional.of(booking));
+
+        // Act
+        ResponseEntity<Map<String, GetBookingResponse>> response = bookingService.getBooking(authenticatedUserId, bookingId);
+
+        // Assert
+        GetBookingResponse expectedResponse = GetBookingResponse.builder()
+                .error("You do not have permission to access this booking")
+                .build();
+
+        verify(bookingDao).findById(bookingId);
+        verifyNoMoreInteractions(bookingDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", expectedResponse));
     }
 
 }

@@ -1,0 +1,10 @@
+### Get a Booking - 200
+GET {{url}}/private/booking/79d35283-5d18-4a65-bb7a-f9d3f619810d
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

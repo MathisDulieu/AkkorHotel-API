@@ -1,6 +1,8 @@
 package com.akkorhotel.hotel.controller;
 
+import com.akkorhotel.hotel.model.Booking;
 import com.akkorhotel.hotel.model.request.CreateBookingRequest;
+import com.akkorhotel.hotel.model.response.GetBookingResponse;
 import com.akkorhotel.hotel.service.BookingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -82,6 +85,29 @@ class BookingControllerTest {
         assertThat(bookingCaptor.getValue().getGuests()).isEqualTo(3);
         assertThat(bookingCaptor.getValue().getCheckInDate()).isEqualTo("2025-03-10T15:00:00");
         assertThat(bookingCaptor.getValue().getCheckOutDate()).isEqualTo("2025-03-15T13:00:00");
+    }
+
+    @Test
+    void shouldReturnBooking() throws Exception {
+        // Arrange
+        String bookingId = "bookingId";
+
+        Booking booking = Booking.builder()
+                .id("bookingId")
+                .build();
+
+        GetBookingResponse response = GetBookingResponse.builder()
+                .booking(booking)
+                .build();
+
+        when(bookingService.getBooking(any(), any()))
+                .thenReturn(ResponseEntity.ok(singletonMap("informations", response)));
+
+        // Act & Assert
+        mockMvc.perform(get("/private/booking/{bookingId}", bookingId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.informations.booking.id").value(bookingId));
     }
 
 }

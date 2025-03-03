@@ -8,6 +8,7 @@ import com.akkorhotel.hotel.model.Booking;
 import com.akkorhotel.hotel.model.Hotel;
 import com.akkorhotel.hotel.model.HotelRoom;
 import com.akkorhotel.hotel.model.request.CreateBookingRequest;
+import com.akkorhotel.hotel.model.response.GetBookingResponse;
 import com.akkorhotel.hotel.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -80,8 +81,24 @@ public class BookingService {
         return ResponseEntity.ok(singletonMap("message", "Booking created successfully"));
     }
 
-    public ResponseEntity<String> getBooking() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, GetBookingResponse>> getBooking(String authenticatedUserId, String bookingId) {
+        GetBookingResponse response = GetBookingResponse.builder().build();
+
+        Optional<Booking> optionalBooking = bookingDao.findById(bookingId);
+        if (optionalBooking.isEmpty()) {
+            response.setError("Booking not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", response));
+        }
+
+        Booking booking = optionalBooking.get();
+
+        if (!booking.getUserId().equals(authenticatedUserId)) {
+            response.setError("You do not have permission to access this booking");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(singletonMap("error", response));
+        }
+
+        response.setBooking(booking);
+        return ResponseEntity.ok(singletonMap("informations", response));
     }
 
     public ResponseEntity<String> updateBooking() {
