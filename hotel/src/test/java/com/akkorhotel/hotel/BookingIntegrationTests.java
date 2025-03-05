@@ -20,6 +20,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -32,8 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -330,5 +330,140 @@ public class BookingIntegrationTests {
                 .andExpect(jsonPath("$.informations.booking.hotel.location.postalCode").value("90210"))
                 .andExpect(jsonPath("$.informations.booking.hotel.location.googleMapsUrl").value("https://maps.google.com/?q=123+Paradise+St"));
     }
+
+    @Test
+    void shouldUpdateBooking() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "bookingId123",
+            "userId": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
+            "status": "CONFIRMED",
+            "isPaid": true,
+            "totalPrice": 500.0,
+            "checkInDate": { "$date": "2025-04-01T14:00:00.000Z" },
+            "checkOutDate": { "$date": "2025-04-05T12:00:00.000Z" },
+            "guests": 2,
+            "hotelRoom": {
+                "_id": "hotelRoomId123",
+                "type": "SINGLE",
+                "price": 100.0,
+                "maxOccupancy": 3,
+                "features": ["WIFI", "BALCONY"]
+            },
+            "hotel": {
+                "_id": "hotelId123",
+                "name": "Luxury Hotel",
+                "picture_list": ["https://example.com/hotel1.jpg", "https://example.com/hotel2.jpg"],
+                "amenities": ["SPA", "POOL", "GYM"],
+                "rooms": [
+                    {
+                        "_id": "hotelRoomId123",
+                        "type": "SINGLE",
+                        "price": 100.0,
+                        "maxOccupancy": 3,
+                        "features": ["WIFI", "BALCONY"]
+                    },
+                    {
+                        "_id": "hotelRoomId456",
+                        "type": "DOUBLE",
+                        "price": 150.0,
+                        "maxOccupancy": 4,
+                        "features": ["ROOM_SERVICE", "HAIR_DRYER"]
+                    }
+                ],
+                "location": {
+                    "_id": "locationId123",
+                    "address": "456 Luxury St",
+                    "city": "Dream City",
+                    "state": "New York",
+                    "country": "USA",
+                    "postalCode": "10001",
+                    "googleMapsUrl": "https://maps.google.com/?q=456+Luxury+St"
+                }
+            }
+        }
+        """, "BOOKING");
+
+        String body = """
+        {
+            "bookingId": "bookingId123",
+            "guests": 3,
+            "checkInDate": "2025-04-02T14:00:00",
+            "checkOutDate": "2025-04-06T12:00:00"
+        }
+        """;
+
+        when(dateConfiguration.newDate()).thenReturn(new Date(1672444800000L));
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(put("/private/booking")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body)
+                .header("Authorization", "Bearer " + token));
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.message").value("Booking updated successfully"));
+                });
+
+        List<Map> updatedBooking = mongoTemplate.findAll(Map.class, "BOOKING");
+
+        assertThat(updatedBooking).hasSize(1);
+
+        assertThat((Map<String, Object>) updatedBooking.getFirst())
+                .containsExactlyInAnyOrderEntriesOf(ofEntries(
+                        entry("_id", "bookingId123"),
+                        entry("userId", "f2cccd2f-5711-4356-a13a-f687dc983ce9"),
+                        entry("status", "PENDING"),
+                        entry("isPaid", false),
+                        entry("totalPrice", 400.0),
+                        entry("checkInDate", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse("2025-04-02T16:00:00")),
+                        entry("checkOutDate", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse("2025-04-06T14:00:00")),
+                        entry("guests", 3),
+                        entry("hotelRoom", Map.ofEntries(
+                                entry("_id", "hotelRoomId123"),
+                                entry("type", "SINGLE"),
+                                entry("price", 100.0),
+                                entry("maxOccupancy", 3),
+                                entry("features", List.of("WIFI", "BALCONY"))
+                        )),
+                        entry("hotel", Map.ofEntries(
+                                entry("_id", "hotelId123"),
+                                entry("name", "Luxury Hotel"),
+                                entry("picture_list", List.of("https://example.com/hotel1.jpg", "https://example.com/hotel2.jpg")),
+                                entry("amenities", List.of("SPA", "POOL", "GYM")),
+                                entry("rooms", List.of(
+                                        Map.ofEntries(
+                                                entry("_id", "hotelRoomId123"),
+                                                entry("type", "SINGLE"),
+                                                entry("price", 100.0),
+                                                entry("maxOccupancy", 3),
+                                                entry("features", List.of("WIFI", "BALCONY"))
+                                        ),
+                                        Map.ofEntries(
+                                                entry("_id", "hotelRoomId456"),
+                                                entry("type", "DOUBLE"),
+                                                entry("price", 150.0),
+                                                entry("maxOccupancy", 4),
+                                                entry("features", List.of("ROOM_SERVICE", "HAIR_DRYER"))
+                                        )
+                                )),
+                                entry("location", Map.ofEntries(
+                                        entry("_id", "locationId123"),
+                                        entry("address", "456 Luxury St"),
+                                        entry("city", "Dream City"),
+                                        entry("state", "New York"),
+                                        entry("country", "USA"),
+                                        entry("postalCode", "10001"),
+                                        entry("googleMapsUrl", "https://maps.google.com/?q=456+Luxury+St")
+                                ))
+                        ))
+                ));
+    }
+
 
 }

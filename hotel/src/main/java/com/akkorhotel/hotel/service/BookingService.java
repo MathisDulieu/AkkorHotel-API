@@ -5,9 +5,11 @@ import com.akkorhotel.hotel.dao.BookingDao;
 import com.akkorhotel.hotel.dao.HotelDao;
 import com.akkorhotel.hotel.dao.HotelRoomDao;
 import com.akkorhotel.hotel.model.Booking;
+import com.akkorhotel.hotel.model.BookingStatus;
 import com.akkorhotel.hotel.model.Hotel;
 import com.akkorhotel.hotel.model.HotelRoom;
 import com.akkorhotel.hotel.model.request.CreateBookingRequest;
+import com.akkorhotel.hotel.model.request.UpdateBookingRequest;
 import com.akkorhotel.hotel.model.response.GetBookingResponse;
 import com.akkorhotel.hotel.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
@@ -101,16 +103,73 @@ public class BookingService {
         return ResponseEntity.ok(singletonMap("informations", response));
     }
 
-    public ResponseEntity<String> updateBooking() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, String>> updateBooking(String authenticatedUserId, UpdateBookingRequest request) {
+        if (isNull(request.getBookingId())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "BookingId is required"));
+        }
+
+        Optional<Booking> optionalBooking = bookingDao.findById(request.getBookingId());
+        if (optionalBooking.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "Booking not found"));
+        }
+
+        Booking booking = optionalBooking.get();
+
+        if (!booking.getUserId().equals(authenticatedUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(singletonMap("error", "You do not have permission to access this booking"));
+        }
+
+        List<String> errors = new ArrayList<>();
+        validateRequest(errors, request, booking.getCheckInDate(), booking.getCheckOutDate());
+        if (!errors.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("errors", userUtils.getErrorsAsString(errors)));
+        }
+
+        if (booking.getHotelRoom().getMaxOccupancy() < request.getGuests()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "The number of guests exceeds the maximum occupancy for this hotel room"));
+        }
+
+        setBookingValues(request, booking);
+        bookingDao.save(booking);
+
+        return ResponseEntity.ok(singletonMap("message", "Booking updated successfully"));
     }
 
     public ResponseEntity<String> deleteBooking() {
         return ResponseEntity.ok().build();
     }
 
-    public ResponseEntity<String> listBookings() {
+    public ResponseEntity<String> getBookings() {
         return ResponseEntity.ok().build();
+    }
+
+    private void setBookingValues(UpdateBookingRequest request, Booking booking) {
+        booking.setGuests(request.getGuests() != 0 ? request.getGuests() : booking.getGuests());
+        booking.setCheckInDate(request.getCheckInDate());
+        booking.setCheckOutDate(request.getCheckOutDate());
+        booking.setStatus(BookingStatus.PENDING);
+        booking.setPaid(false);
+        booking.setTotalPrice(calculateTotalPrice(request.getCheckInDate(), request.getCheckOutDate(), booking.getHotelRoom().getPrice()));
+    }
+
+    private void validateRequest(List<String> errors, UpdateBookingRequest request, Date checkInDate, Date checkOutDate) {
+        if (request.getGuests() == 0 && isNull(request.getCheckInDate()) && isNull(request.getCheckOutDate())) {
+            errors.add("At least one field must be provided for the update");
+        } else {
+            request.setCheckInDate(isNull(request.getCheckInDate()) ? checkInDate : request.getCheckInDate());
+            request.setCheckOutDate(isNull(request.getCheckOutDate()) ? checkOutDate : request.getCheckOutDate());
+            Date today = dateConfiguration.newDate();
+
+            if (request.getGuests() < 0) {
+                errors.add("The number of guests must be greater than zero");
+            }
+            if (!request.getCheckInDate().after(today)) {
+                errors.add("Check-in date must be after today's date");
+            }
+            if (!request.getCheckOutDate().after(request.getCheckInDate())) {
+                errors.add("Check-out date must be after check-in date");
+            }
+        }
     }
 
     private void validateRequest(List<String> errors, CreateBookingRequest request) {

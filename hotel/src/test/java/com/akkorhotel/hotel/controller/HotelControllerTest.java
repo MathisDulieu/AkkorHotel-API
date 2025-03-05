@@ -43,7 +43,7 @@ class HotelControllerTest {
     }
 
     @Test
-    void shouldReturnHotelInformation_whenHotelExists() throws Exception {
+    void shouldReturnHotelInformation() throws Exception {
         // Arrange
         String hotelId = "f2cccd2f-5711-4356-a13a-f687dc983ce1";
 

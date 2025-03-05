@@ -2,6 +2,7 @@ package com.akkorhotel.hotel.controller;
 
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.CreateBookingRequest;
+import com.akkorhotel.hotel.model.request.UpdateBookingRequest;
 import com.akkorhotel.hotel.model.response.GetBookingResponse;
 import com.akkorhotel.hotel.service.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -276,5 +277,156 @@ public class BookingController {
     ) {
         return bookingService.getBooking(authenticatedUser.getId(), bookingId);
     }
+
+    @PutMapping
+    @Operation(
+            tags = {"Booking"},
+            summary = "Update an existing booking",
+            description = """
+            Allows a user to update an existing booking.
+            
+            ## Notes:
+            - The user must be authenticated via bearer token.
+            - The user can update the number of guests, check-in date, or check-out date.
+            - At least one field must be provided for an update.
+            - The number of guests must be greater than zero and within the room's max occupancy.
+            - The check-in date must be after today's date.
+            - The check-out date must be after the check-in date.
+            - The user can only update their own bookings.
+            """,
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Booking updated successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Booking Updated",
+                                    value = """
+                                    {
+                                        "message": "Booking updated successfully"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request or validation errors",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            name = "Missing Booking ID",
+                                            value = """
+                                            {
+                                                "error": "BookingId is required"
+                                            }
+                                            """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Guests Count",
+                                            value = """
+                                            {
+                                                "errors": [
+                                                    "The number of guests must be greater than zero"
+                                                ]
+                                            }
+                                            """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Check-in Date",
+                                            value = """
+                                            {
+                                                "errors": [
+                                                    "Check-in date must be after today's date"
+                                                ]
+                                            }
+                                            """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Check-out Date Error",
+                                            value = """
+                                            {
+                                                "errors": [
+                                                    "Check-out date must be after check-in date"
+                                                ]
+                                            }
+                                            """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Guests Exceeds Max Occupancy",
+                                            value = """
+                                            {
+                                                "error": "The number of guests exceeds the maximum occupancy for this hotel room"
+                                            }
+                                            """
+                                    ),
+                                    @ExampleObject(
+                                            name = "No Fields Provided",
+                                            value = """
+                                            {
+                                                "errors": [
+                                                    "At least one field must be provided for the update"
+                                                ]
+                                            }
+                                            """
+                                    )
+                            }
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "User does not have permission to update this booking",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Forbidden Access",
+                                    value = """
+                                    {
+                                        "error": "You do not have permission to access this booking"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Booking not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Booking Not Found",
+                                    value = """
+                                    {
+                                        "error": "Booking not found"
+                                    }
+                                    """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> updateBooking(
+            @AuthenticationPrincipal User authenticatedUser,
+            @RequestBody(description = "Booking update request", required = true, content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "Update Booking Request",
+                            value = """
+                            {
+                                "bookingId": "bookingId123",
+                                "guests": 2,
+                                "checkInDate": "2025-04-01T14:00:00",
+                                "checkOutDate": "2025-04-05T12:00:00"
+                            }
+                            """
+                    )
+            )) @org.springframework.web.bind.annotation.RequestBody UpdateBookingRequest request) {
+
+        return bookingService.updateBooking(authenticatedUser.getId(), request);
+    }
+
 
 }

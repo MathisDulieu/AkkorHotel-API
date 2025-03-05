@@ -6,18 +6,19 @@ springdoc:
 
 spring:
   mail:
-    username: username
-    password: password
+    username: username #Value to update
+    password: password #Value to update
 
 akkorhotel:
   properties:
-    mongo-uri: mongoUri
     database-name: akkorhotel_local
     allowed-origins: '*'
-    mail-modified-username: "[PROD] AkkorHotel"
-    mail-register-subject: "[PROD] Confirmez votre inscription à AkkorHotel"
+    mail-modified-username: "[TEST] AkkorHotel"
+    mail-register-subject: "[TEST] Confirmez votre inscription à AkkorHotel"
     mail-register-confirmation-link: https://www.example.com/link
-    cloudinary-api-key: cloudinaryApiKey
-    cloudinary-cloud-name: cloudinaryCloudName
-    cloudinary-api-secret: cloudinaryApiSecret
     default-user-profile-image: https://i.ibb.co/FbZDPKWx/png-transparent-jedi-avatar-user-profile.png
+
+    mongo-uri: mongoUri #Value to update
+    cloudinary-api-key: cloudinaryApiKey #Value to update
+    cloudinary-cloud-name: cloudinaryCloudName #Value to update
+    cloudinary-api-secret: cloudinaryApiSecret #Value to update

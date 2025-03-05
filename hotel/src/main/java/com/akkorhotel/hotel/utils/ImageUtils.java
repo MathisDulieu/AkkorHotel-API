@@ -24,4 +24,5 @@ public class ImageUtils {
         Map uploadResult = cloudinary.uploader().upload(imageFile.getBytes(), ObjectUtils.emptyMap());
         return (String) uploadResult.get("secure_url");
     }
+
 }

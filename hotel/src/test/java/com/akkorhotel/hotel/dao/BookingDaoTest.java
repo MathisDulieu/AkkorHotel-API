@@ -33,7 +33,7 @@ class BookingDaoTest {
     }
 
     @Test
-    void shouldSaveNewHotel() {
+    void shouldSaveNewBooking() {
         // Arrange
         HotelLocation hotelLocation = HotelLocation.builder()
                 .id("hotelLocationId")

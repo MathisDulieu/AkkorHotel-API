@@ -20,6 +20,6 @@ public class HotelLocation {
     private String state;
     private String country;
     private String postalCode;
-
     private String googleMapsUrl;
+
 }
