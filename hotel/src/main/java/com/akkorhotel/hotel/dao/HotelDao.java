@@ -1,6 +1,10 @@
 package com.akkorhotel.hotel.dao;
 
 import com.akkorhotel.hotel.model.Hotel;
+import com.akkorhotel.hotel.model.HotelRoom;
+import com.akkorhotel.hotel.model.request.GetHotelsFilter;
+import com.akkorhotel.hotel.model.request.GetHotelsFilters;
+import com.akkorhotel.hotel.model.request.GetHotelsRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -9,6 +13,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,4 +58,118 @@ public class HotelDao {
                 Aggregation.limit(pageSize)
         );
     }
+
+    public long countHotelsWithRequest(GetHotelsFilters filters) {
+        Criteria criteria = new Criteria();
+
+        List<Integer> selectedStars = new ArrayList<>();
+        if (filters.isOneStar()) selectedStars.add(1);
+        if (filters.isTwoStars()) selectedStars.add(2);
+        if (filters.isThreeStars()) selectedStars.add(3);
+        if (filters.isFourStars()) selectedStars.add(4);
+        if (filters.isFiveStars()) selectedStars.add(5);
+
+        if (!selectedStars.isEmpty()) {
+            criteria = criteria.and("stars").in(selectedStars);
+        }
+
+        if (filters.getHotelAmenities() != null && !filters.getHotelAmenities().isEmpty()) {
+            criteria = criteria.and("amenities").all(filters.getHotelAmenities());
+        }
+
+        if (filters.getCity() != null && !filters.getCity().trim().isEmpty()) {
+            criteria = criteria.and("location.city").is(filters.getCity());
+        }
+
+        if (filters.getMinPrice() > 0 && filters.getMaxPrice() > 0 && filters.getMinPrice() < filters.getMaxPrice()) {
+            criteria = criteria.and("rooms.price").gte(filters.getMinPrice()).lte(filters.getMaxPrice());
+        }
+
+        Query query = new Query();
+        if (!criteria.equals(new Criteria())) {
+            query.addCriteria(criteria);
+        }
+
+        List<Hotel> hotels = mongoTemplate.find(query, Hotel.class, HOTEL_COLLECTION);
+
+        return hotels.stream()
+                .filter(hotel -> {
+                    boolean hasEnoughRooms = filters.getBedrooms() <= 0 || hotel.getRooms().size() >= filters.getBedrooms();
+
+                    boolean hasEnoughCapacity = true;
+                    if (filters.getGuests() > 0) {
+                        int totalCapacity = hotel.getRooms().stream()
+                                .mapToInt(HotelRoom::getMaxOccupancy)
+                                .sum();
+                        hasEnoughCapacity = totalCapacity >= filters.getGuests();
+                    }
+
+                    return hasEnoughRooms && hasEnoughCapacity;
+                })
+                .count();
+    }
+
+    public List<Hotel> searchHotelsByRequest(GetHotelsRequest request) {
+        Criteria criteria = new Criteria();
+        GetHotelsFilters filters = request.getFilters();
+
+        List<Integer> selectedStars = new ArrayList<>();
+        if (filters.isOneStar()) selectedStars.add(1);
+        if (filters.isTwoStars()) selectedStars.add(2);
+        if (filters.isThreeStars()) selectedStars.add(3);
+        if (filters.isFourStars()) selectedStars.add(4);
+        if (filters.isFiveStars()) selectedStars.add(5);
+
+        if (!selectedStars.isEmpty()) {
+            criteria = criteria.and("stars").in(selectedStars);
+        }
+
+        if (filters.getHotelAmenities() != null && !filters.getHotelAmenities().isEmpty()) {
+            criteria = criteria.and("amenities").all(filters.getHotelAmenities());
+        }
+
+        if (filters.getCity() != null && !filters.getCity().trim().isEmpty()) {
+            criteria = criteria.and("location.city").is(filters.getCity());
+        }
+
+        if (filters.getMinPrice() > 0 && filters.getMaxPrice() > 0 && filters.getMinPrice() < filters.getMaxPrice()) {
+            criteria = criteria.and("rooms.price").gte(filters.getMinPrice()).lte(filters.getMaxPrice());
+        }
+
+        Query query = new Query();
+        if (!criteria.equals(new Criteria())) {
+            query.addCriteria(criteria);
+        }
+
+        if (request.getFilter() != null) {
+            if (request.getFilter().equals(GetHotelsFilter.PRICE_LOW_TO_HIGH.name())) {
+                query.with(Sort.by(Sort.Direction.ASC, "rooms.price"));
+            } else if (request.getFilter().equals(GetHotelsFilter.PRICE_HIGH_TO_LOW.name())) {
+                query.with(Sort.by(Sort.Direction.DESC, "rooms.price"));
+            }
+        }
+
+        if (request.getPage() >= 0 && request.getPageSize() > 0) {
+            query.skip((long) request.getPage() * request.getPageSize()).limit(request.getPageSize());
+        }
+
+        List<Hotel> hotels = mongoTemplate.find(query, Hotel.class, HOTEL_COLLECTION);
+
+        return hotels.stream()
+                .filter(hotel -> {
+                    boolean hasEnoughRooms = filters.getBedrooms() <= 0 || hotel.getRooms().size() >= filters.getBedrooms();
+
+                    boolean hasEnoughCapacity = true;
+                    if (filters.getGuests() > 0) {
+                        int totalCapacity = hotel.getRooms().stream()
+                                .mapToInt(HotelRoom::getMaxOccupancy)
+                                .sum();
+                        hasEnoughCapacity = totalCapacity >= filters.getGuests();
+                    }
+
+                    return hasEnoughRooms && hasEnoughCapacity;
+                })
+                .toList();
+    }
+
 }

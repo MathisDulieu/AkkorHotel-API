@@ -1,10 +1,10 @@
 package com.akkorhotel.hotel.controller;
 
+import com.akkorhotel.hotel.model.request.GetHotelsRequest;
 import com.akkorhotel.hotel.model.response.GetAllHotelsResponse;
 import com.akkorhotel.hotel.model.response.GetHotelResponse;
 import com.akkorhotel.hotel.service.HotelService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -101,19 +101,20 @@ public class HotelController {
         return hotelService.getHotel(hotelId);
     }
 
-    @GetMapping
+    @PostMapping
     @Operation(
             tags = {"Hotel"},
-            summary = "Get all hotels with name matching prefix",
+            summary = "Get hotels with filters, sorting, and pagination",
             description = """
-            Retrieves all hotels whose name starts with the specified keyword.
-            Results are paginated. If pageSize is 0, a default page size of 10 will be used.
-            
-            ## Parameters:
-            - keyword: Prefix to search for in hotel names
-            - page: Zero-based page index
-            - pageSize: Number of hotels per page
-            """
+        Retrieves hotels based on various filters such as number of guests, bedrooms, sorting order, and pagination.
+        Results are paginated. If pageSize is 0, a default page size of 10 will be used.
+
+        ## Request Body:
+        - page: Zero-based index for pagination.
+        - pageSize: Number of hotels per page.
+        - filter: Sorting option (PRICE_LOW_TO_HIGH or PRICE_HIGH_TO_LOW).
+        - filters: Object containing additional filtering options.
+    """
     )
     @ApiResponses({
             @ApiResponse(
@@ -124,49 +125,34 @@ public class HotelController {
                             examples = @ExampleObject(
                                     name = "Successful Hotels Retrieval",
                                     value = """
-                                    {
-                                        "informations": {
-                                            "hotels": [
-                                                {
-                                                    "id": "hotelId1",
-                                                    "name": "LuxuryHotel",
-                                                    "description": "A five-star experience.",
-                                                    "picture_list": ["https://mocked-image-url.com/hotel1.jpg"],
-                                                    "amenities": ["POOL", "WIFI"],
-                                                    "rooms": [],
-                                                    "location": {
-                                                        "id": "locationId1",
-                                                        "address": "123 Rue de la Paix",
-                                                        "city": "Paris",
-                                                        "state": "Île-de-France",
-                                                        "country": "France",
-                                                        "postalCode": "75001",
-                                                        "googleMapsUrl": "https://maps.google.com/?q=LuxuryHotel"
-                                                    }
-                                                },
-                                                {
-                                                    "id": "hotelId2",
-                                                    "name": "LuxurySpa",
-                                                    "description": "Relaxation at its finest.",
-                                                    "picture_list": ["https://mocked-image-url.com/spa1.jpg"],
-                                                    "amenities": ["SPA", "WIFI"],
-                                                    "rooms": [],
-                                                    "location": {
-                                                        "id": "locationId2",
-                                                        "address": "456 Avenue des Champs-Élysées",
-                                                        "city": "Paris",
-                                                        "state": "Île-de-France",
-                                                        "country": "France",
-                                                        "postalCode": "75008",
-                                                        "googleMapsUrl": "https://maps.google.com/?q=LuxurySpa"
-                                                    }
-                                                }
-                                            ],
-                                            "totalPages": 3,
-                                            "error": null
-                                        }
-                                    }
-                                    """
+                {
+                    "informations": {
+                        "hotels": [
+                            {
+                                "hotelId": "hotelId1",
+                                "name": "LuxuryHotel",
+                                "description": "A five-star experience.",
+                                "firstPicture": "https://mocked-image-url.com/hotel1.jpg",
+                                "price": 150.0,
+                                "address": "123 Rue de la Paix",
+                                "googleMapUrl": "https://maps.google.com/?q=LuxuryHotel"
+                            },
+                            {
+                                "hotelId": "hotelId2",
+                                "name": "LuxurySpa",
+                                "description": "Relaxation at its finest.",
+                                "firstPicture": "https://mocked-image-url.com/spa1.jpg",
+                                "price": 180.0,
+                                "address": "456 Avenue des Champs-Élysées",
+                                "googleMapUrl": "https://maps.google.com/?q=LuxurySpa"
+                            }
+                        ],
+                        "hotelsFound": 25,
+                        "totalPages": 3,
+                        "error": null
+                    }
+                }
+                """
                             )
                     )
             ),
@@ -178,14 +164,15 @@ public class HotelController {
                             examples = @ExampleObject(
                                     name = "No Hotels Found",
                                     value = """
-                                    {
-                                        "informations": {
-                                            "hotels": [],
-                                            "totalPages": 0,
-                                            "error": "No hotel found"
-                                        }
-                                    }
-                                    """
+                {
+                    "informations": {
+                        "hotels": [],
+                        "hotelsFound": 0,
+                        "totalPages": 0,
+                        "error": "No hotel found"
+                    }
+                }
+                """
                             )
                     )
             ),
@@ -197,14 +184,14 @@ public class HotelController {
                             examples = @ExampleObject(
                                     name = "Page Exceeds Total",
                                     value = """
-                                    {
-                                        "warning": {
-                                            "hotels": [],
-                                            "totalPages": 5,
-                                            "error": "Requested page exceeds the total number of available pages"
-                                        }
-                                    }
-                                    """
+                {
+                    "warning": {
+                        "hotels": [],
+                        "totalPages": 5,
+                        "error": "Requested page exceeds the total number of available pages"
+                    }
+                }
+                """
                             )
                     )
             ),
@@ -215,56 +202,109 @@ public class HotelController {
                             mediaType = "application/json",
                             examples = {
                                     @ExampleObject(
-                                            name = "Negative Page Size",
-                                            value = """
-                                            {
-                                                "error": {
-                                                    "hotels": [],
-                                                    "totalPages": 0,
-                                                    "error": "Page size must be greater than or equal to zero"
-                                                }
-                                            }
-                                            """
-                                    ),
-                                    @ExampleObject(
                                             name = "Negative Page Number",
                                             value = """
-                                            {
-                                                "error": {
-                                                    "hotels": [],
-                                                    "totalPages": 0,
-                                                    "error": "Page number must be greater than or equal to zero"
-                                                }
-                                            }
-                                            """
+                    {
+                        "error": {
+                            "hotels": [],
+                            "totalPages": 0,
+                            "error": "Page number must be greater than or equal to zero"
+                        }
+                    }
+                    """
                                     ),
                                     @ExampleObject(
-                                            name = "Invalid Keyword",
+                                            name = "Negative Page Size",
                                             value = """
-                                            {
-                                                "error": {
-                                                    "hotels": [],
-                                                    "totalPages": 0,
-                                                    "error": "Search keyword cannot contain spaces"
-                                                }
-                                            }
-                                            """
+                    {
+                        "error": {
+                            "hotels": [],
+                            "totalPages": 0,
+                            "error": "Page size must be greater than or equal to zero"
+                        }
+                    }
+                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Sorting Filter",
+                                            value = """
+                    {
+                        "error": {
+                            "hotels": [],
+                            "totalPages": 0,
+                            "error": "Invalid filter provided"
+                        }
+                    }
+                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Negative Minimum Price",
+                                            value = """
+                    {
+                        "error": {
+                            "hotels": [],
+                            "totalPages": 0,
+                            "error": "Minimum price must be greater than or equal to zero"
+                        }
+                    }
+                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Minimum Price Greater than Maximum Price",
+                                            value = """
+                    {
+                        "error": {
+                            "hotels": [],
+                            "totalPages": 0,
+                            "error": "Minimum price must be less than maximum price"
+                        }
+                    }
+                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Guests Number",
+                                            value = """
+                    {
+                        "error": {
+                            "hotels": [],
+                            "totalPages": 0,
+                            "error": "Guests number must be greater than zero"
+                        }
+                    }
+                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid Bedrooms Number",
+                                            value = """
+                    {
+                        "error": {
+                            "hotels": [],
+                            "totalPages": 0,
+                            "error": "Bedrooms number must be greater than zero"
+                        }
+                    }
+                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "Invalid City Format",
+                                            value = """
+                    {
+                        "error": {
+                            "hotels": [],
+                            "totalPages": 0,
+                            "error": "City name contains invalid characters"
+                        }
+                    }
+                    """
                                     )
                             }
                     )
-            ),
+            )
     })
     public ResponseEntity<Map<String, GetAllHotelsResponse>> getHotels(
-            @Parameter(description = "Hotel name prefix to search for", example = "Luxury")
-            @RequestParam(required = false, defaultValue = "") String keyword,
-
-            @Parameter(description = "Zero-based page index", example = "0")
-            @RequestParam(required = false, defaultValue = "0") int page,
-
-            @Parameter(description = "Page size (number of hotels per page). Default is 10 if set to 0", example = "10")
-            @RequestParam(required = false, defaultValue = "0") int pageSize) {
-
-        return hotelService.getHotels(keyword, page, pageSize);
+            @RequestBody GetHotelsRequest request
+    ) {
+        return hotelService.getHotels(request);
     }
 
 }

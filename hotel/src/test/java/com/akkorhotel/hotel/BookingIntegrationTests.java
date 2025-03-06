@@ -98,6 +98,7 @@ public class BookingIntegrationTests {
             "name": "HotelParadise",
             "picture_list": ["https://example.com/pic1.jpg", "https://example.com/pic2.jpg"],
             "amenities": ["PARKING", "BAR", "POOL", "GYM"],
+            "stars": 4,
             "rooms": [
                 {
                     "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
@@ -199,6 +200,7 @@ public class BookingIntegrationTests {
                                 entry("name", "HotelParadise"),
                                 entry("picture_list", List.of("https://example.com/pic1.jpg", "https://example.com/pic2.jpg")),
                                 entry("amenities", List.of("PARKING", "BAR", "POOL", "GYM")),
+                                entry("stars", 4),
                                 entry("rooms", List.of(
                                         Map.ofEntries(
                                                 entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce2"),
@@ -253,6 +255,7 @@ public class BookingIntegrationTests {
                 "name": "HotelParadise",
                 "picture_list": ["https://example.com/pic1.jpg", "https://example.com/pic2.jpg"],
                 "amenities": ["PARKING", "BAR", "POOL", "GYM"],
+                "stars": 4,
                 "rooms": [
                     {
                         "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
@@ -305,6 +308,7 @@ public class BookingIntegrationTests {
                 .andExpect(jsonPath("$.informations.booking.hotelRoom.features[1]").value("BALCONY"))
                 .andExpect(jsonPath("$.informations.booking.hotel.id").value("f2cccd2f-5711-4356-a13a-f687dc983ce3"))
                 .andExpect(jsonPath("$.informations.booking.hotel.name").value("HotelParadise"))
+                .andExpect(jsonPath("$.informations.booking.hotel.stars").value(4))
                 .andExpect(jsonPath("$.informations.booking.hotel.picture_list[0]").value("https://example.com/pic1.jpg"))
                 .andExpect(jsonPath("$.informations.booking.hotel.picture_list[1]").value("https://example.com/pic2.jpg"))
                 .andExpect(jsonPath("$.informations.booking.hotel.amenities[0]").value("PARKING"))
@@ -356,6 +360,7 @@ public class BookingIntegrationTests {
                 "name": "Luxury Hotel",
                 "picture_list": ["https://example.com/hotel1.jpg", "https://example.com/hotel2.jpg"],
                 "amenities": ["SPA", "POOL", "GYM"],
+                "stars": 4,
                 "rooms": [
                     {
                         "_id": "hotelRoomId123",
@@ -436,6 +441,7 @@ public class BookingIntegrationTests {
                                 entry("name", "Luxury Hotel"),
                                 entry("picture_list", List.of("https://example.com/hotel1.jpg", "https://example.com/hotel2.jpg")),
                                 entry("amenities", List.of("SPA", "POOL", "GYM")),
+                                entry("stars", 4),
                                 entry("rooms", List.of(
                                         Map.ofEntries(
                                                 entry("_id", "hotelRoomId123"),

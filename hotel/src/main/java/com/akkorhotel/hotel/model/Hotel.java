@@ -33,4 +33,6 @@ public class Hotel {
     @Builder.Default
     private List<HotelRoom> rooms = emptyList();
 
+    private int stars;
+
 }

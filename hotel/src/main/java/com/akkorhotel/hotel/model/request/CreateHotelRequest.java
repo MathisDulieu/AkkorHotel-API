@@ -21,4 +21,5 @@ public class CreateHotelRequest {
     private String postalCode;
     private String googleMapsUrl;
     private List<String> amenities;
+    private int stars;
 }

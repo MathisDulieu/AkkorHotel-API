@@ -1,6 +1,5 @@
 package com.akkorhotel.hotel.model.response;
 
-import com.akkorhotel.hotel.model.Hotel;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -19,27 +18,32 @@ class GetAllHotelsResponseTest {
         assertThat(getAllHotelsResponse.getError()).isNull();
         assertThat(getAllHotelsResponse.getHotels()).isEqualTo(emptyList());
         assertThat(getAllHotelsResponse.getTotalPages()).isEqualTo(0);
+        assertThat(getAllHotelsResponse.getHotelsFound()).isEqualTo(0);
     }
 
     @Test
     void shouldOverrideGetAllHotelsResponseDefaultValuesWhenSpecified() {
         // Arrange
+        List<GetAllHotelsHotelResponse> hotelsResponse = List.of(
+                GetAllHotelsHotelResponse.builder().hotelId("hotelId1").build(),
+                GetAllHotelsHotelResponse.builder().hotelId("hotelId2").build()
+        );
+
         GetAllHotelsResponse getAllHotelsResponse = GetAllHotelsResponse.builder()
-                .hotels(List.of(
-                        Hotel.builder().id("id1").build(),
-                        Hotel.builder().id("id2").build()
-                ))
                 .totalPages(10)
                 .error("ErrorMessage")
+                .hotels(hotelsResponse)
+                .hotelsFound(5L)
                 .build();
 
         // Assert
         assertThat(getAllHotelsResponse.getError()).isEqualTo("ErrorMessage");
         assertThat(getAllHotelsResponse.getHotels()).isEqualTo(List.of(
-                Hotel.builder().id("id1").build(),
-                Hotel.builder().id("id2").build()
+                GetAllHotelsHotelResponse.builder().hotelId("hotelId1").build(),
+                GetAllHotelsHotelResponse.builder().hotelId("hotelId2").build()
         ));
         assertThat(getAllHotelsResponse.getTotalPages()).isEqualTo(10);
+        assertThat(getAllHotelsResponse.getHotelsFound()).isEqualTo(5L);
     }
 
 }

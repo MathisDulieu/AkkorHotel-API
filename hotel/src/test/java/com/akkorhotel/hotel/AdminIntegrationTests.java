@@ -381,6 +381,7 @@ public class AdminIntegrationTests {
             "description": "A five-star experience.",
             "picture_list": ["https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg"],
             "amenities": ["POOL", "WIFI"],
+            "stars": 4,
             "rooms": [
                 {
                     "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
@@ -445,6 +446,7 @@ public class AdminIntegrationTests {
                         entry("name", "LuxuryHotel"),
                         entry("description", "A five-star experience."),
                         entry("amenities", List.of("POOL", "WIFI")),
+                        entry("stars", 4),
                         entry("picture_list", List.of("https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg")),
                         entry("location", Map.ofEntries(
                                 entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce4"),
@@ -503,6 +505,7 @@ public class AdminIntegrationTests {
             "description": "A five-star experience.",
             "picture_list": ["https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg"],
             "amenities": ["POOL", "WIFI"],
+            "stars": 4,
             "rooms": [
                 {
                     "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
@@ -573,6 +576,7 @@ public class AdminIntegrationTests {
                         entry("name", "LuxuryHotel"),
                         entry("description", "A five-star experience."),
                         entry("amenities", List.of("POOL", "WIFI")),
+                        entry("stars", 4),
                         entry("picture_list", List.of("https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg")),
                         entry("location", Map.ofEntries(
                                 entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce4"),
@@ -608,6 +612,7 @@ public class AdminIntegrationTests {
                 "description": "A five-star experience.",
                 "picture_list": ["https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg"],
                 "amenities": ["POOL", "WIFI"],
+                "stars": 4,
                 "rooms": [
                     {
                         "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
@@ -689,6 +694,7 @@ public class AdminIntegrationTests {
             "description": "A five-star experience.",
             "picture_list": ["https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg"],
             "amenities": ["POOL", "WIFI"],
+            "stars": 4,
             "rooms": [
                 {
                     "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
@@ -747,6 +753,7 @@ public class AdminIntegrationTests {
                         entry("name", "LuxuryHotel"),
                         entry("description", "A five-star experience."),
                         entry("amenities", List.of("POOL", "WIFI")),
+                        entry("stars", 4),
                         entry("picture_list", List.of("https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg", "https://mocked-image-url.com/hotel3.jpg")),
                         entry("location", Map.ofEntries(
                                 entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce4"),
@@ -786,6 +793,7 @@ public class AdminIntegrationTests {
                 "description": "A five-star experience.",
                 "picture_list": ["https://mocked-image-url.com/hotel1.jpg", "https://mocked-image-url.com/hotel2.jpg"],
                 "amenities": ["POOL", "WIFI"],
+                "stars": 4,
                 "rooms": [
                     {
                         "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
@@ -845,6 +853,7 @@ public class AdminIntegrationTests {
                         entry("name", "LuxuryHotel"),
                         entry("description", "A five-star experience."),
                         entry("amenities", List.of("POOL", "WIFI")),
+                        entry("stars", 4),
                         entry("picture_list", List.of("https://mocked-image-url.com/hotel2.jpg")),
                         entry("location", Map.ofEntries(
                                 entry("_id", "f2cccd2f-5711-4356-a13a-f687dc983ce4"),

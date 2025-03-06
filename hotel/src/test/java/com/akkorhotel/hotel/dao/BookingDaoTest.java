@@ -61,6 +61,7 @@ class BookingDaoTest {
                 .amenities(List.of(HotelAmenities.BAR, HotelAmenities.WIFI))
                 .picture_list(List.of("picture1", "picture2"))
                 .description("description")
+                .stars(4)
                 .build();
 
         Booking booking = Booking.builder()
@@ -104,6 +105,7 @@ class BookingDaoTest {
                                 entry("description", "description"),
                                 entry("picture_list", List.of("picture1", "picture2")),
                                 entry("amenities", List.of("BAR", "WIFI")),
+                                entry("stars", 4),
                                 entry("rooms", List.of(
                                         Map.ofEntries(
                                                 entry("_id", "hotelRoomId"),
@@ -151,6 +153,7 @@ class BookingDaoTest {
                 "name": "name",
                 "picture_list": ["https://example.com/pic1.jpg", "https://example.com/pic2.jpg"],
                 "amenities": ["PARKING", "BAR"],
+                "stars": 4,
                 "rooms": [
                     {
                         "_id": "hotelRoomId1",

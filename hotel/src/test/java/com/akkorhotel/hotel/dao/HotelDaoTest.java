@@ -47,6 +47,7 @@ class HotelDaoTest {
                         .googleMapsUrl("googleMapsUrl")
                         .build())
                 .name("name")
+                .stars(4)
                 .build();
 
         // Act
@@ -61,6 +62,7 @@ class HotelDaoTest {
                         entry("picture_list", emptyList()),
                         entry("amenities", emptyList()),
                         entry("rooms", emptyList()),
+                        entry("stars", 4),
                         entry("location", Map.of(
                                 "_id", "f2cccd2f-5711-4356-a13a-f687dc983ce1",
                                 "address", "address",
@@ -82,6 +84,7 @@ class HotelDaoTest {
             "name": "name",
             "picture_list": ["picture1", "picture2"],
             "amenities": ["PARKING", "BAR"],
+            "stars": 4,
             "rooms": [
                 {
                     "_id": "roomId1",
@@ -119,6 +122,7 @@ class HotelDaoTest {
         assertThat(hotelOptional.get().getName()).isEqualTo("name");
         assertThat(hotelOptional.get().getPicture_list()).isEqualTo(List.of("picture1", "picture2"));
         assertThat(hotelOptional.get().getAmenities()).isEqualTo(List.of(HotelAmenities.PARKING, HotelAmenities.BAR));
+        assertThat(hotelOptional.get().getStars()).isEqualTo(4);
         assertThat(hotelOptional.get().getRooms()).isEqualTo(List.of(
                 HotelRoom.builder()
                         .id("roomId1")
@@ -419,6 +423,7 @@ class HotelDaoTest {
             "name": "name1",
             "picture_list": ["picture1", "picture2"],
             "amenities": ["PARKING", "BAR"],
+            "stars": 4,
             "rooms": [],
             "location": {
                 "_id": "locationId1",
@@ -438,6 +443,7 @@ class HotelDaoTest {
             "name": "name2",
             "picture_list": ["picture3", "picture4"],
             "amenities": ["RESTAURANT", "WIFI"],
+            "stars": 4,
             "rooms": [],
             "location": {
                 "_id": "locationId2",
@@ -457,6 +463,7 @@ class HotelDaoTest {
             "name": "anotherName",
             "picture_list": ["picture5", "picture6"],
             "amenities": ["RESTAURANT", "WIFI"],
+            "stars": 4,
             "rooms": [],
             "location": {
                 "_id": "locationId3",
@@ -481,6 +488,7 @@ class HotelDaoTest {
                         .name("name1")
                         .picture_list(List.of("picture1", "picture2"))
                         .amenities(List.of(HotelAmenities.PARKING, HotelAmenities.BAR))
+                        .stars(4)
                         .rooms(emptyList())
                         .location(HotelLocation.builder()
                                 .id("locationId1")
@@ -497,6 +505,7 @@ class HotelDaoTest {
                         .name("name2")
                         .picture_list(List.of("picture3", "picture4"))
                         .amenities(List.of(HotelAmenities.RESTAURANT, HotelAmenities.WIFI))
+                        .stars(4)
                         .rooms(emptyList())
                         .location(HotelLocation.builder()
                                 .id("locationId2")
@@ -520,6 +529,7 @@ class HotelDaoTest {
             "name": "name1",
             "picture_list": ["picture1", "picture2"],
             "amenities": ["PARKING", "BAR"],
+            "stars": 4,
             "rooms": [],
             "location": {
                 "_id": "locationId1",
@@ -539,6 +549,7 @@ class HotelDaoTest {
             "name": "name2",
             "picture_list": ["picture3", "picture4"],
             "amenities": ["RESTAURANT", "WIFI"],
+            "stars": 4,
             "rooms": [],
             "location": {
                 "_id": "locationId2",
@@ -558,6 +569,7 @@ class HotelDaoTest {
             "name": "name3",
             "picture_list": ["picture5", "picture6"],
             "amenities": ["RESTAURANT", "WIFI"],
+            "stars": 4,
             "rooms": [],
             "location": {
                 "_id": "locationId3",
@@ -577,6 +589,7 @@ class HotelDaoTest {
             "name": "name4",
             "picture_list": ["picture7", "picture8"],
             "amenities": ["RESTAURANT", "WIFI"],
+            "stars": 4,
             "rooms": [],
             "location": {
                 "_id": "locationId4",
@@ -601,6 +614,7 @@ class HotelDaoTest {
                         .name("name1")
                         .picture_list(List.of("picture1", "picture2"))
                         .amenities(List.of(HotelAmenities.PARKING, HotelAmenities.BAR))
+                        .stars(4)
                         .rooms(emptyList())
                         .location(HotelLocation.builder()
                                 .id("locationId1")
@@ -617,6 +631,7 @@ class HotelDaoTest {
                         .name("name2")
                         .picture_list(List.of("picture3", "picture4"))
                         .amenities(List.of(HotelAmenities.RESTAURANT, HotelAmenities.WIFI))
+                        .stars(4)
                         .rooms(emptyList())
                         .location(HotelLocation.builder()
                                 .id("locationId2")
@@ -640,6 +655,7 @@ class HotelDaoTest {
             "name": "nameA2",
             "picture_list": ["picture1", "picture2"],
             "amenities": ["PARKING", "BAR"],
+            "stars": 4,
             "rooms": [],
             "location": {
                 "_id": "locationId1",
@@ -659,6 +675,7 @@ class HotelDaoTest {
             "name": "nameA1",
             "picture_list": ["picture3", "picture4"],
             "amenities": ["RESTAURANT", "WIFI"],
+            "stars": 4,
             "rooms": [],
             "location": {
                 "_id": "locationId2",
@@ -682,6 +699,7 @@ class HotelDaoTest {
                         .name("nameA1")
                         .picture_list(List.of("picture3", "picture4"))
                         .amenities(List.of(HotelAmenities.RESTAURANT, HotelAmenities.WIFI))
+                        .stars(4)
                         .rooms(emptyList())
                         .location(HotelLocation.builder()
                                 .id("locationId2")
@@ -698,6 +716,7 @@ class HotelDaoTest {
                         .name("nameA2")
                         .picture_list(List.of("picture1", "picture2"))
                         .amenities(List.of(HotelAmenities.PARKING, HotelAmenities.BAR))
+                        .stars(4)
                         .rooms(emptyList())
                         .location(HotelLocation.builder()
                                 .id("locationId1")
@@ -730,6 +749,7 @@ class HotelDaoTest {
             "name": "name1",
             "picture_list": ["picture1", "picture2"],
             "amenities": ["PARKING", "BAR"],
+            "stars": 3,
             "rooms": [],
             "location": {
                 "_id": "locationId1",
@@ -749,6 +769,7 @@ class HotelDaoTest {
             "name": "name2",
             "picture_list": ["picture3", "picture4"],
             "amenities": ["RESTAURANT", "WIFI"],
+            "stars": 4,
             "rooms": [],
             "location": {
                 "_id": "locationId2",
@@ -773,6 +794,7 @@ class HotelDaoTest {
                         .name("name1")
                         .picture_list(List.of("picture1", "picture2"))
                         .amenities(List.of(HotelAmenities.PARKING, HotelAmenities.BAR))
+                        .stars(3)
                         .rooms(emptyList())
                         .location(HotelLocation.builder()
                                 .id("locationId1")
@@ -789,6 +811,7 @@ class HotelDaoTest {
                         .name("name2")
                         .picture_list(List.of("picture3", "picture4"))
                         .amenities(List.of(HotelAmenities.RESTAURANT, HotelAmenities.WIFI))
+                        .stars(4)
                         .rooms(emptyList())
                         .location(HotelLocation.builder()
                                 .id("locationId2")

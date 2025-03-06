@@ -1,6 +1,27 @@
 ### Get hotels - 200
-GET {{url}}/hotel?keyword=Luxury&page=0&pageSize=10
+POST {{url}}/hotel
 Content-Type: application/json
+
+{
+  "page": 0,
+  "pageSize": 10,
+  "filter": "PRICE_LOW_TO_HIGH",
+  "filters": {
+    "oneStar": false,
+    "twoStars": false,
+    "threeStars": false,
+    "fourStars": true,
+    "fiveStars": true,
+    "hotelAmenities": [
+      "WIFI"
+    ],
+    "minPrice": 0,
+    "maxPrice": 2000,
+    "guests": 2,
+    "bedrooms": 1,
+    "city": "Lille"
+  }
+}
 
 > {%
     client.test("Check response status", function (){

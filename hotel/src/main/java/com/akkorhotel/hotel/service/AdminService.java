@@ -393,6 +393,7 @@ public class AdminService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .picture_list(picture_list)
+                .stars(request.getStars())
                 .build();
     }
 
