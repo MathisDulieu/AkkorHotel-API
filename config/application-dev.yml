@@ -12,7 +12,7 @@ spring:
 akkorhotel:
   properties:
     database-name: akkorhotel_local
-    allowed-origins: '*'
+    allowed-origins: "http://localhost:5173"
     mail-modified-username: "[TEST] AkkorHotel"
     mail-register-subject: "[TEST] Confirmez votre inscription à AkkorHotel"
     mail-register-confirmation-link: https://www.example.com/link

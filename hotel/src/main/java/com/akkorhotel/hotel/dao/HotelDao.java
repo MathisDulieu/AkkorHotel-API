@@ -95,15 +95,17 @@ public class HotelDao {
         return hotels.stream()
                 .filter(hotel -> {
                     boolean hasEnoughRooms = filters.getBedrooms() <= 0 || hotel.getRooms().size() >= filters.getBedrooms();
-
                     boolean hasEnoughCapacity = true;
                     if (filters.getGuests() > 0) {
-                        int totalCapacity = hotel.getRooms().stream()
+                        List<HotelRoom> roomsWithMaxOccupancy = hotel.getRooms().stream()
+                                .sorted((r1, r2) -> Integer.compare(r2.getMaxOccupancy(), r1.getMaxOccupancy()))
+                                .limit(filters.getBedrooms())
+                                .toList();
+                        int totalCapacity = roomsWithMaxOccupancy.stream()
                                 .mapToInt(HotelRoom::getMaxOccupancy)
                                 .sum();
                         hasEnoughCapacity = totalCapacity >= filters.getGuests();
                     }
-
                     return hasEnoughRooms && hasEnoughCapacity;
                 })
                 .count();
@@ -158,15 +160,17 @@ public class HotelDao {
         return hotels.stream()
                 .filter(hotel -> {
                     boolean hasEnoughRooms = filters.getBedrooms() <= 0 || hotel.getRooms().size() >= filters.getBedrooms();
-
                     boolean hasEnoughCapacity = true;
                     if (filters.getGuests() > 0) {
-                        int totalCapacity = hotel.getRooms().stream()
+                        List<HotelRoom> roomsWithMaxOccupancy = hotel.getRooms().stream()
+                                .sorted((r1, r2) -> Integer.compare(r2.getMaxOccupancy(), r1.getMaxOccupancy()))
+                                .limit(filters.getBedrooms())
+                                .toList();
+                        int totalCapacity = roomsWithMaxOccupancy.stream()
                                 .mapToInt(HotelRoom::getMaxOccupancy)
                                 .sum();
                         hasEnoughCapacity = totalCapacity >= filters.getGuests();
                     }
-
                     return hasEnoughRooms && hasEnoughCapacity;
                 })
                 .toList();
