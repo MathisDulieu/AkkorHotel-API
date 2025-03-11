@@ -122,11 +122,11 @@ public class UserController {
                             examples = @ExampleObject(
                                     name = "Success Example",
                                     value = """
-                                {
-                                    "status": 200,
-                                    "message": "User details updated successfully"
-                                }
-                                """
+                                    {
+                                        "status": 200,
+                                        "message": "User details updated successfully"
+                                    }
+                                    """
                             )
                     )
             ),
@@ -138,12 +138,12 @@ public class UserController {
                             examples = @ExampleObject(
                                     name = "Validation Errors Example",
                                     value = """
-                                {
-                                    "status": 400,
-                                    "error": "Bad Request",
-                                    "message": "Invalid username: Must be 3-11 characters and cannot contain spaces. | Email already taken: Please choose a different one."
-                                }
-                                """
+                                    {
+                                        "status": 400,
+                                        "error": "Bad Request",
+                                        "message": "Invalid username: Must be 3-11 characters and cannot contain spaces. | Email already taken: Please choose a different one."
+                                    }
+                                    """
                             )
                     )
             ),
@@ -155,12 +155,12 @@ public class UserController {
                             examples = @ExampleObject(
                                     name = "Email Sending Error Example",
                                     value = """
-                                {
-                                    "status": 500,
-                                    "error": "Internal Server Error",
-                                    "message": "Failed to send confirmation email. Please try again later."
-                                }
-                                """
+                                    {
+                                        "status": 500,
+                                        "error": "Internal Server Error",
+                                        "message": "Failed to send confirmation email. Please try again later."
+                                    }
+                                    """
                             )
                     )
             )
@@ -172,13 +172,13 @@ public class UserController {
                             examples = @ExampleObject(
                                     name = "Update User Request Example",
                                     value = """
-                                {
-                                    "email": "new.email@example.com",
-                                    "username": "newUsername",
-                                    "oldPassword": "oldPass123",
-                                    "newPassword": "newPass456"
-                                }
-                                """
+                                    {
+                                        "email": "new.email@example.com",
+                                        "username": "newUsername",
+                                        "oldPassword": "oldPass123",
+                                        "newPassword": "newPass456"
+                                    }
+                                    """
                             )
                     )
             ) @org.springframework.web.bind.annotation.RequestBody UpdateUserRequest request,
@@ -202,11 +202,11 @@ public class UserController {
                             examples = @ExampleObject(
                                     name = "Success Example",
                                     value = """
-                            {
-                                "status": 200,
-                                "message": "User deleted successfully"
-                            }
-                            """
+                                    {
+                                        "status": 200,
+                                        "message": "User deleted successfully"
+                                    }
+                                    """
                             )
                     )
             )

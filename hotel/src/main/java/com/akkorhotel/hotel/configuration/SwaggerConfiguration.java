@@ -43,7 +43,8 @@ public class SwaggerConfiguration {
                 .addTagsItem(new Tag().name("User").description("Endpoints for user account management"))
                 .addTagsItem(new Tag().name("Hotel").description("Endpoints for hotel management (creation, update, deletion, search)"))
                 .addTagsItem(new Tag().name("Booking").description("Endpoints for hotel booking management"))
-                .addTagsItem(new Tag().name("Admin").description("Endpoints for administrator-specific operations"));
+                .addTagsItem(new Tag().name("Admin").description("Endpoints for administrator-specific operations"))
+                .addTagsItem(new Tag().name("Test").description("Endpoints for testing purposes, data generation, and system validation"));
     }
 
     @Bean
