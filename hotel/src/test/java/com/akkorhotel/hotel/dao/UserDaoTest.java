@@ -830,4 +830,36 @@ class UserDaoTest {
         );
     }
 
+    @Test
+    void shouldReturnFalse_whenUserDoesNotExist() {
+        // Arrange
+        // Act
+        boolean exist = userDao.exists("userId");
+
+        // Assert
+        assertThat(exist).isEqualTo(false);
+    }
+
+    @Test
+    void shouldReturnTrue_whenUserExist() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "userId",
+            "username": "username",
+            "password": "password",
+            "email": "email",
+            "isValidEmail": true,
+            "role": "USER",
+            "profileImageUrl": "profileImageUrl"
+        }
+        """, "USERS");
+
+        // Act
+        boolean exist = userDao.exists("userId");
+
+        // Assert
+        assertThat(exist).isEqualTo(true);
+    }
+
 }

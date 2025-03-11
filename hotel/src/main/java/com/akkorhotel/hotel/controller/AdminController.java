@@ -3,6 +3,7 @@ package com.akkorhotel.hotel.controller;
 
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.*;
+import com.akkorhotel.hotel.model.response.AdminGetBookingsResponse;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
@@ -1037,6 +1038,147 @@ public class AdminController {
             @org.springframework.web.bind.annotation.RequestBody RemovePictureFromHotelRequest request
     ) {
         return adminService.deleteHotelPicture(hotelId, request);
+    }
+
+    @GetMapping("/users/{userId}/bookings")
+    @Operation(
+            tags = {"Admin"},
+            summary = "Get all bookings for a specific user",
+            description = """
+            Retrieves all bookings associated with the specified user ID.
+            Returns a comprehensive list of bookings with their details.
+            
+            ## Parameters:
+            - userId: The unique identifier of the user whose bookings are being retrieved
+            """,
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Bookings retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Successful Bookings Retrieval",
+                                    value = """
+                                    {
+                                        "informations": {
+                                            "bookings": [
+                                                {
+                                                    "_id": "bookingId123",
+                                                    "userId": "userId456",
+                                                    "status": "PENDING",
+                                                    "isPaid": false,
+                                                    "totalPrice": 600.0,
+                                                    "checkInDate": "2025-03-10T14:00:00",
+                                                    "checkOutDate": "2025-03-15T12:00:00",
+                                                    "guests": 3,
+                                                    "hotelRoom": {
+                                                        "_id": "hotelRoomId123",
+                                                        "price": 120.0,
+                                                        "maxOccupancy": 3,
+                                                        "features": ["ROOM_SERVICE", "BALCONY"],
+                                                        "type": "SINGLE"
+                                                    },
+                                                    "hotel": {
+                                                        "_id": "hotelId123",
+                                                        "name": "Hotel Paradise",
+                                                        "picture_list": [
+                                                            "https://example.com/pic1.jpg",
+                                                            "https://example.com/pic2.jpg"
+                                                        ],
+                                                        "amenities": ["PARKING", "BAR", "POOL"],
+                                                        "location": {
+                                                            "address": "123 Paradise St",
+                                                            "city": "Paradise City",
+                                                            "country": "USA"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "_id": "bookingId123",
+                                                    "userId": "userId456",
+                                                    "status": "PENDING",
+                                                    "isPaid": false,
+                                                    "totalPrice": 600.0,
+                                                    "checkInDate": "2025-03-10T14:00:00",
+                                                    "checkOutDate": "2025-03-15T12:00:00",
+                                                    "guests": 3,
+                                                    "hotelRoom": {
+                                                        "_id": "hotelRoomId123",
+                                                        "price": 120.0,
+                                                        "maxOccupancy": 3,
+                                                        "features": ["ROOM_SERVICE", "BALCONY"],
+                                                        "type": "SINGLE"
+                                                    },
+                                                    "hotel": {
+                                                        "_id": "hotelId123",
+                                                        "name": "Hotel Paradise",
+                                                        "picture_list": [
+                                                            "https://example.com/pic1.jpg",
+                                                            "https://example.com/pic2.jpg"
+                                                        ],
+                                                        "amenities": ["PARKING", "BAR", "POOL"],
+                                                        "location": {
+                                                            "address": "123 Paradise St",
+                                                            "city": "Paradise City",
+                                                            "country": "USA"
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "error": null
+                                        }
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User has no bookings",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "No Bookings Found",
+                                    value = """
+                                    {
+                                        "informations": {
+                                            "bookings": [],
+                                            "error": null
+                                        }
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "User Not Found",
+                                    value = """
+                                    {
+                                        "error": {
+                                            "bookings": null,
+                                            "error": "User not found"
+                                        }
+                                    }
+                                    """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, AdminGetBookingsResponse>> getUserBookings(
+            @Parameter(description = "ID of the user whose bookings to retrieve",
+                    example = "f2cccd2f-5711-4356-a13a-f687dc983ce9",
+                    required = true)
+            @PathVariable String userId) {
+
+        return adminService.getAllUserBookings(userId);
     }
 
 }

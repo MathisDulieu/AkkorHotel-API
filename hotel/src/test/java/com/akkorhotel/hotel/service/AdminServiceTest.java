@@ -1,10 +1,12 @@
 package com.akkorhotel.hotel.service;
 
+import com.akkorhotel.hotel.dao.BookingDao;
 import com.akkorhotel.hotel.dao.HotelDao;
 import com.akkorhotel.hotel.dao.HotelRoomDao;
 import com.akkorhotel.hotel.dao.UserDao;
 import com.akkorhotel.hotel.model.*;
 import com.akkorhotel.hotel.model.request.*;
+import com.akkorhotel.hotel.model.response.AdminGetBookingsResponse;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.utils.ImageUtils;
@@ -22,6 +24,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -59,6 +62,9 @@ class AdminServiceTest {
 
     @Mock
     private HotelRoomDao hotelRoomDao;
+
+    @Mock
+    private BookingDao bookingDao;
 
     @Test
     void shouldReturnAllUsersWithMatchingPrefix() {
@@ -2319,6 +2325,78 @@ class AdminServiceTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "The picture is not in the hotel's list of pictures"));
+    }
+
+    @Test
+    void shouldReturnNotFoundError_whenUserDoesNotExist() {
+        // Arrange
+        String userId = "userId";
+
+        when(userDao.exists(anyString())).thenReturn(false);
+
+        // Act
+        ResponseEntity<Map<String, AdminGetBookingsResponse>> response = adminService.getAllUserBookings(userId);
+
+        // Assert
+        AdminGetBookingsResponse expectedResponse = AdminGetBookingsResponse.builder()
+                .error("User not found")
+                .bookings(null)
+                .build();
+
+        verify(userDao).exists("userId");
+        verifyNoMoreInteractions(userDao);
+        verifyNoInteractions(bookingDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", expectedResponse));
+    }
+
+    @Test
+    void shouldReturnBookings() {
+        // Arrange
+        String userId = "userId";
+
+        Booking booking1 = Booking.builder()
+                .id("bookingId1")
+                .checkInDate(new Date(1705276800000L))
+                .checkOutDate(new Date(1705612800000L))
+                .userId("userId")
+                .hotelRoom(null)
+                .status(BookingStatus.CONFIRMED)
+                .isPaid(true)
+                .totalPrice(200.0)
+                .build();
+
+        Booking booking2 = Booking.builder()
+                .id("bookingId2")
+                .checkInDate(new Date(1705276800000L))
+                .checkOutDate(new Date(1705612800000L))
+                .userId("userId")
+                .hotelRoom(null)
+                .status(BookingStatus.CONFIRMED)
+                .isPaid(true)
+                .totalPrice(200.0)
+                .build();
+
+        when(userDao.exists(anyString())).thenReturn(true);
+        when(bookingDao.getBookings(anyString())).thenReturn(List.of(booking1, booking2));
+
+        // Act
+        ResponseEntity<Map<String, AdminGetBookingsResponse>> response = adminService.getAllUserBookings(userId);
+
+        // Assert
+        AdminGetBookingsResponse expectedResponse = AdminGetBookingsResponse.builder()
+                .error(null)
+                .bookings(List.of(booking1, booking2))
+                .build();
+
+        InOrder inOrder = inOrder(userDao, bookingDao);
+        inOrder.verify(userDao).exists("userId");
+        inOrder.verify(bookingDao).getBookings("userId");
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("informations", expectedResponse));
     }
 
     private CreateHotelRoomRequest buildCreateHotelRoomRequest(String hotelId, String type, List<String> features, double price, int maxOccupancy) {

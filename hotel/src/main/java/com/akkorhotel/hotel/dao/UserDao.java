@@ -96,4 +96,8 @@ public class UserDao {
         );
     }
 
+    public boolean exists(String userId) {
+        return mongoTemplate.exists(new Query(Criteria.where("_id").is(userId)), User.class, USER_COLLECTION);
+    }
+
 }

@@ -1,8 +1,10 @@
 package com.akkorhotel.hotel.controller;
 
+import com.akkorhotel.hotel.model.Booking;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.request.*;
+import com.akkorhotel.hotel.model.response.AdminGetBookingsResponse;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.service.AdminService;
@@ -427,6 +429,35 @@ class AdminControllerTest {
 
         assertThat(capturedHotelId).isEqualTo(hotelId);
         assertThat(capturedRequest.getPictureLink()).isEqualTo("https://mocked-image-url.com/hotel1.jpg");
+    }
+
+    @Test
+    void shouldGetUserBookings() throws Exception {
+        // Arrange
+        String userId = "f2cccd2f-5711-4356-a13a-f687dc983ce9";
+
+        List<Booking> bookings = List.of(
+                Booking.builder().userId(userId).id("bookingId1").build(),
+                Booking.builder().userId(userId).id("bookingId2").build()
+        );
+
+        AdminGetBookingsResponse expectedResponse = AdminGetBookingsResponse.builder()
+                .bookings(bookings)
+                .build();
+
+        when(adminService.getAllUserBookings(eq(userId)))
+                .thenReturn(ResponseEntity.ok(singletonMap("informations", expectedResponse)));
+
+        // Act & Assert
+        mockMvc.perform(get("/private/admin/users/{userId}/bookings", userId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.informations.bookings").isArray())
+                .andExpect(jsonPath("$.informations.bookings.length()").value(2))
+                .andExpect(jsonPath("$.informations.bookings[0].id").value("bookingId1"))
+                .andExpect(jsonPath("$.informations.bookings[0].userId").value("f2cccd2f-5711-4356-a13a-f687dc983ce9"))
+                .andExpect(jsonPath("$.informations.bookings[1].id").value("bookingId2"))
+                .andExpect(jsonPath("$.informations.bookings[1].userId").value("f2cccd2f-5711-4356-a13a-f687dc983ce9"));
     }
 
 }

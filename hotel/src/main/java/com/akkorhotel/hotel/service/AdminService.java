@@ -1,10 +1,12 @@
 package com.akkorhotel.hotel.service;
 
+import com.akkorhotel.hotel.dao.BookingDao;
 import com.akkorhotel.hotel.dao.HotelDao;
 import com.akkorhotel.hotel.dao.HotelRoomDao;
 import com.akkorhotel.hotel.dao.UserDao;
 import com.akkorhotel.hotel.model.*;
 import com.akkorhotel.hotel.model.request.*;
+import com.akkorhotel.hotel.model.response.AdminGetBookingsResponse;
 import com.akkorhotel.hotel.model.response.GetAllUsersResponse;
 import com.akkorhotel.hotel.model.response.GetUserByIdResponse;
 import com.akkorhotel.hotel.utils.ImageUtils;
@@ -34,6 +36,7 @@ public class AdminService {
     private final UuidProvider uuidProvider;
     private final ImageUtils imageUtils;
     private final HotelRoomDao hotelRoomDao;
+    private final BookingDao bookingDao;
 
     public ResponseEntity<Map<String, GetAllUsersResponse>> getAllUsers(String keyword, int page, int pageSize) {
         GetAllUsersResponse response = GetAllUsersResponse.builder().build();
@@ -251,8 +254,19 @@ public class AdminService {
         return ResponseEntity.ok().build();
     }
 
-    public ResponseEntity<Map<String, String>> getAllUserBookings() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, AdminGetBookingsResponse>> getAllUserBookings(String userId) {
+        AdminGetBookingsResponse response = AdminGetBookingsResponse.builder().build();
+
+        boolean userExist = userDao.exists(userId);
+        if (!userExist) {
+            response.setError("User not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", response));
+        }
+
+        List<Booking> bookings = bookingDao.getBookings(userId);
+        response.setBookings(bookings);
+
+        return ResponseEntity.ok(singletonMap("informations", response));
     }
 
     public ResponseEntity<Map<String, String>> getAllHotelBookings() {
