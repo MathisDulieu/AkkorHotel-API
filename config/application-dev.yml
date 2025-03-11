@@ -10,15 +10,15 @@ spring:
     password: password #Value to update
 
 akkorhotel:
-    properties:
-      database-name: akkorhotel_local
-      allowed-origins: "http://localhost:5173"
-      mail-modified-username: "[TEST] AkkorHotel"
-      mail-register-subject: "[TEST] Confirmez votre inscription à AkkorHotel"
-      mail-register-confirmation-link: http://localhost:5173/validate-email/
-      default-user-profile-image: https://i.ibb.co/FbZDPKWx/png-transparent-jedi-avatar-user-profile.png
+  properties:
+    database-name: akkorhotel_local
+    allowed-origins: "http://localhost:5173"
+    mail-modified-username: "[TEST] AkkorHotel"
+    mail-register-subject: "[TEST] Confirmez votre inscription à AkkorHotel"
+    mail-register-confirmation-link: http://localhost:5173/validate-email/
+    default-user-profile-image: https://i.ibb.co/FbZDPKWx/png-transparent-jedi-avatar-user-profile.png
 
-      mongo-uri: mongoUri #Value to update
-      cloudinary-api-key: cloudinaryApiKey #Value to update
-      cloudinary-cloud-name: cloudinaryCloudName #Value to update
-      cloudinary-api-secret: cloudinaryApiSecret #Value to update
+    mongo-uri: mongoUri #Value to update
+    cloudinary-api-key: cloudinaryApiKey #Value to update
+    cloudinary-cloud-name: cloudinaryCloudName #Value to update
+    cloudinary-api-secret: cloudinaryApiSecret #Value to update

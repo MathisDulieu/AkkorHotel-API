@@ -1181,4 +1181,114 @@ public class AdminController {
         return adminService.getAllUserBookings(userId);
     }
 
+    @GetMapping("/hotels/{hotelId}/bookings")
+    @Operation(
+            tags = {"Admin"},
+            summary = "Get all bookings for a specific hotel",
+            description = """
+            Retrieves all bookings associated with the specified hotel ID.
+            Returns a comprehensive list of bookings with their details.
+    
+            ## Parameters:
+            - hotelId: The unique identifier of the hotel whose bookings are being retrieved
+            """,
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Bookings retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Successful Bookings Retrieval",
+                                    value = """
+                                    {
+                                        "informations": {
+                                            "bookings": [
+                                                {
+                                                    "_id": "bookingId123",
+                                                    "userId": "userId456",
+                                                    "status": "PENDING",
+                                                    "isPaid": false,
+                                                    "totalPrice": 600.0,
+                                                    "checkInDate": "2025-03-10T14:00:00",
+                                                    "checkOutDate": "2025-03-15T12:00:00",
+                                                    "guests": 3,
+                                                    "hotelRoom": {
+                                                        "_id": "hotelRoomId123",
+                                                        "price": 120.0,
+                                                        "maxOccupancy": 3,
+                                                        "features": ["ROOM_SERVICE", "BALCONY"],
+                                                        "type": "SINGLE"
+                                                    },
+                                                    "hotel": {
+                                                        "_id": "hotelId123",
+                                                        "name": "Hotel Paradise",
+                                                        "picture_list": [
+                                                            "https://example.com/pic1.jpg",
+                                                            "https://example.com/pic2.jpg"
+                                                        ],
+                                                        "amenities": ["PARKING", "BAR", "POOL"],
+                                                        "location": {
+                                                            "address": "123 Paradise St",
+                                                            "city": "Paradise City",
+                                                            "country": "USA"
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "error": null
+                                        }
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Hotel has no bookings",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "No Bookings Found",
+                                    value = """
+                                    {
+                                        "informations": {
+                                            "bookings": [],
+                                            "error": null
+                                        }
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Hotel not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Hotel Not Found",
+                                    value = """
+                                    {
+                                        "error": {
+                                            "bookings": null,
+                                            "error": "Hotel not found"
+                                        }
+                                    }
+                                    """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, AdminGetBookingsResponse>> getHotelBookings(
+            @Parameter(description = "ID of the hotel whose bookings to retrieve",
+                    example = "hotelId123",
+                    required = true)
+            @PathVariable String hotelId) {
+
+        return adminService.getAllHotelBookings(hotelId);
+    }
+
 }

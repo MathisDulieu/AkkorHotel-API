@@ -1,0 +1,10 @@
+### Get Hotel Bookings - 200
+GET {{url}}/private/admin/hotels/68979100-6340-41e7-a096-69f3d0b82157/bookings
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

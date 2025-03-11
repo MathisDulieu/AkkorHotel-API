@@ -404,4 +404,145 @@ class BookingDaoTest {
         assertThat(bookings).isEqualTo(List.of(booking));
     }
 
+    @Test
+    void shouldReturnBookingsWithMatchingHotelId() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "bookingId1",
+            "userId": "userId1",
+            "status": "PENDING",
+            "isPaid": false,
+            "totalPrice": 600.0,
+            "checkInDate": { "$date": "2023-03-10T14:00:00.000Z" },
+            "checkOutDate": { "$date": "2023-03-15T12:00:00.000Z" },
+            "guests": 3,
+            "hotelRoom": {
+                "_id": "hotelRoomId",
+                "price": 120.0,
+                "maxOccupancy": 3,
+                "features": ["ROOM_SERVICE", "BALCONY"],
+                "type": "SINGLE"
+            },
+            "hotel": {
+                "_id": "hotelId1",
+                "name": "name",
+                "picture_list": ["https://example.com/pic1.jpg", "https://example.com/pic2.jpg"],
+                "amenities": ["PARKING", "BAR"],
+                "stars": 4,
+                "rooms": [
+                    {
+                        "_id": "hotelRoomId",
+                        "price": 120.0,
+                        "maxOccupancy": 3,
+                        "features": ["ROOM_SERVICE", "BALCONY"],
+                        "type": "SINGLE"
+                    }
+                ],
+                "location": {
+                    "_id": "locationId",
+                    "address": "address",
+                    "city": "city",
+                    "state": "state",
+                    "country": "country",
+                    "postalCode": "postalCode",
+                    "googleMapsUrl": "googleMapsUrl"
+                }
+            }
+        }
+        """, "BOOKING");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "bookingId2",
+            "userId": "userId2",
+            "status": "PENDING",
+            "isPaid": false,
+            "totalPrice": 600.0,
+            "checkInDate": { "$date": "2023-03-10T14:00:00.000Z" },
+            "checkOutDate": { "$date": "2023-03-15T12:00:00.000Z" },
+            "guests": 3,
+            "hotelRoom": {
+                "_id": "hotelRoomId",
+                "price": 120.0,
+                "maxOccupancy": 3,
+                "features": ["ROOM_SERVICE", "BALCONY"],
+                "type": "SINGLE"
+            },
+            "hotel": {
+                "_id": "hotelId2",
+                "name": "name",
+                "picture_list": ["https://example.com/pic1.jpg", "https://example.com/pic2.jpg"],
+                "amenities": ["PARKING", "BAR"],
+                "stars": 4,
+                "rooms": [
+                    {
+                        "_id": "hotelRoomId1",
+                        "price": 120.0,
+                        "maxOccupancy": 3,
+                        "features": ["ROOM_SERVICE", "BALCONY"],
+                        "type": "SINGLE"
+                    }
+                ],
+                "location": {
+                    "_id": "locationId",
+                    "address": "address",
+                    "city": "city",
+                    "state": "state",
+                    "country": "country",
+                    "postalCode": "postalCode",
+                    "googleMapsUrl": "googleMapsUrl"
+                }
+            }
+        }
+        """, "BOOKING");
+
+        // Act
+        List<Booking> bookings = bookingDao.getHotelBookings("hotelId1");
+
+        // Assert
+        HotelLocation hotelLocation = HotelLocation.builder()
+                .id("locationId")
+                .address("address")
+                .city("city")
+                .state("state")
+                .country("country")
+                .postalCode("postalCode")
+                .googleMapsUrl("googleMapsUrl")
+                .build();
+
+        HotelRoom hotelRoom = HotelRoom.builder()
+                .id("hotelRoomId")
+                .price(120.00)
+                .maxOccupancy(3)
+                .features(List.of(HotelRoomFeatures.ROOM_SERVICE, HotelRoomFeatures.BALCONY))
+                .type(HotelRoomType.SINGLE)
+                .build();
+
+        Hotel hotel = Hotel.builder()
+                .id("hotelId1")
+                .location(hotelLocation)
+                .name("name")
+                .rooms(List.of(hotelRoom))
+                .amenities(List.of(HotelAmenities.PARKING, HotelAmenities.BAR))
+                .picture_list(List.of("https://example.com/pic1.jpg", "https://example.com/pic2.jpg"))
+                .stars(4)
+                .build();
+
+        Booking booking = Booking.builder()
+                .id("bookingId1")
+                .userId("userId1")
+                .status(BookingStatus.PENDING)
+                .isPaid(false)
+                .totalPrice(600.00)
+                .checkInDate(new Date(1678456800000L))
+                .checkOutDate(new Date(1678881600000L))
+                .guests(3)
+                .hotelRoom(hotelRoom)
+                .hotel(hotel)
+                .build();
+
+        assertThat(bookings).isEqualTo(List.of(booking));
+    }
+
 }

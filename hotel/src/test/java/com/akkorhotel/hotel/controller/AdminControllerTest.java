@@ -1,6 +1,7 @@
 package com.akkorhotel.hotel.controller;
 
 import com.akkorhotel.hotel.model.Booking;
+import com.akkorhotel.hotel.model.Hotel;
 import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.UserRole;
 import com.akkorhotel.hotel.model.request.*;
@@ -459,5 +460,33 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.informations.bookings[1].id").value("bookingId2"))
                 .andExpect(jsonPath("$.informations.bookings[1].userId").value("f2cccd2f-5711-4356-a13a-f687dc983ce9"));
     }
+
+    @Test
+    void shouldGetHotelBookings() throws Exception {
+        // Arrange
+        String hotelId = "hotelId123";
+
+        List<Booking> bookings = List.of(
+                Booking.builder().id("bookingId1").hotel(Hotel.builder().id(hotelId).build()).build(),
+                Booking.builder().id("bookingId2").hotel(Hotel.builder().id(hotelId).build()).build()
+        );
+
+        AdminGetBookingsResponse expectedResponse = AdminGetBookingsResponse.builder()
+                .bookings(bookings)
+                .build();
+
+        when(adminService.getAllHotelBookings(eq(hotelId)))
+                .thenReturn(ResponseEntity.ok(singletonMap("informations", expectedResponse)));
+
+        // Act & Assert
+        mockMvc.perform(get("/private/admin/hotels/{hotelId}/bookings", hotelId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.informations.bookings[0].id").value("bookingId1"))
+                .andExpect(jsonPath("$.informations.bookings[0].hotel.id").value("hotelId123"))
+                .andExpect(jsonPath("$.informations.bookings[1].id").value("bookingId2"))
+                .andExpect(jsonPath("$.informations.bookings[1].hotel.id").value("hotelId123"));
+    }
+
 
 }

@@ -269,8 +269,19 @@ public class AdminService {
         return ResponseEntity.ok(singletonMap("informations", response));
     }
 
-    public ResponseEntity<Map<String, String>> getAllHotelBookings() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, AdminGetBookingsResponse>> getAllHotelBookings(String hotelId) {
+        AdminGetBookingsResponse response = AdminGetBookingsResponse.builder().build();
+
+        boolean hotelExist = hotelDao.exists(hotelId);
+        if (!hotelExist) {
+            response.setError("Hotel not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", response));
+        }
+
+        List<Booking> bookings = bookingDao.getHotelBookings(hotelId);
+        response.setBookings(bookings);
+
+        return ResponseEntity.ok(singletonMap("informations", response));
     }
 
     private String removedPictureFromHotel(String pictureLink, Hotel hotel) {

@@ -33,4 +33,9 @@ public class BookingDao {
     public List<Booking> getBookings(String userId) {
         return mongoTemplate.find(new Query(Criteria.where("userId").is(userId)), Booking.class, BOOKING_COLLECTION);
     }
+
+    public List<Booking> getHotelBookings(String hotelId) {
+        return mongoTemplate.find(new Query(Criteria.where("hotel._id").is(hotelId)), Booking.class, BOOKING_COLLECTION);
+    }
+
 }

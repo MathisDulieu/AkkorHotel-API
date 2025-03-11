@@ -176,4 +176,7 @@ public class HotelDao {
                 .toList();
     }
 
+    public boolean exists(String hotelId) {
+        return mongoTemplate.exists(new Query(Criteria.where("_id").is(hotelId)), Hotel.class, HOTEL_COLLECTION);
+    }
 }

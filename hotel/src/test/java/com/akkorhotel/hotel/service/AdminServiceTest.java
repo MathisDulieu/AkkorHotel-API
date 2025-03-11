@@ -2352,7 +2352,7 @@ class AdminServiceTest {
     }
 
     @Test
-    void shouldReturnBookings() {
+    void shouldReturnUserBookings() {
         // Arrange
         String userId = "userId";
 
@@ -2397,6 +2397,78 @@ class AdminServiceTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(singletonMap("informations", expectedResponse));
+    }
+
+    @Test
+    void shouldReturnHotelBookings() {
+        // Arrange
+        String userId = "hotelId";
+
+        Booking booking1 = Booking.builder()
+                .id("bookingId1")
+                .checkInDate(new Date(1705276800000L))
+                .checkOutDate(new Date(1705612800000L))
+                .userId("userId")
+                .hotelRoom(null)
+                .status(BookingStatus.CONFIRMED)
+                .isPaid(true)
+                .totalPrice(200.0)
+                .build();
+
+        Booking booking2 = Booking.builder()
+                .id("bookingId2")
+                .checkInDate(new Date(1705276800000L))
+                .checkOutDate(new Date(1705612800000L))
+                .userId("userId")
+                .hotelRoom(null)
+                .status(BookingStatus.CONFIRMED)
+                .isPaid(true)
+                .totalPrice(200.0)
+                .build();
+
+        when(hotelDao.exists(anyString())).thenReturn(true);
+        when(bookingDao.getHotelBookings(anyString())).thenReturn(List.of(booking1, booking2));
+
+        // Act
+        ResponseEntity<Map<String, AdminGetBookingsResponse>> response = adminService.getAllHotelBookings(userId);
+
+        // Assert
+        AdminGetBookingsResponse expectedResponse = AdminGetBookingsResponse.builder()
+                .error(null)
+                .bookings(List.of(booking1, booking2))
+                .build();
+
+        InOrder inOrder = inOrder(hotelDao, bookingDao);
+        inOrder.verify(hotelDao).exists("hotelId");
+        inOrder.verify(bookingDao).getHotelBookings("hotelId");
+        inOrder.verifyNoMoreInteractions();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("informations", expectedResponse));
+    }
+
+    @Test
+    void shouldReturnNotFoundError_whenHotelDoesNotExist() {
+        // Arrange
+        String hotelId = "hotelId";
+
+        when(hotelDao.exists(anyString())).thenReturn(false);
+
+        // Act
+        ResponseEntity<Map<String, AdminGetBookingsResponse>> response = adminService.getAllHotelBookings(hotelId);
+
+        // Assert
+        AdminGetBookingsResponse expectedResponse = AdminGetBookingsResponse.builder()
+                .error("Hotel not found")
+                .bookings(null)
+                .build();
+
+        verify(hotelDao).exists("hotelId");
+        verifyNoMoreInteractions(hotelDao);
+        verifyNoInteractions(bookingDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", expectedResponse));
     }
 
     private CreateHotelRoomRequest buildCreateHotelRoomRequest(String hotelId, String type, List<String> features, double price, int maxOccupancy) {

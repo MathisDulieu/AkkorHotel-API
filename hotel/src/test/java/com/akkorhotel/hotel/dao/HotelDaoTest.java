@@ -826,4 +826,44 @@ class HotelDaoTest {
         );
     }
 
+    @Test
+    void shouldReturnFalse_whenHotelDoesNotExist() {
+        // Arrange
+        // Act
+        boolean exist = hotelDao.exists("hotelId");
+
+        // Assert
+        assertThat(exist).isEqualTo(false);
+    }
+
+    @Test
+    void shouldReturnTrue_whenUserExist() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "hotelId",
+            "name": "name",
+            "picture_list": ["picture1", "picture2"],
+            "amenities": ["PARKING", "BAR"],
+            "stars": 3,
+            "rooms": [],
+            "location": {
+                "_id": "locationId1",
+                "address": "address1",
+                "city": "city1",
+                "state": "state1",
+                "country": "country1",
+                "postalCode": "postalCode1",
+                "googleMapsUrl": "googleMapsUrl1"
+            }
+        }
+        """, "HOTELS");
+
+        // Act
+        boolean exist = hotelDao.exists("hotelId");
+
+        // Assert
+        assertThat(exist).isEqualTo(true);
+    }
+
 }
