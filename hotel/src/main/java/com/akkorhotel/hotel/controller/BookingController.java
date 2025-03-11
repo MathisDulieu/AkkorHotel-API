@@ -4,6 +4,7 @@ import com.akkorhotel.hotel.model.User;
 import com.akkorhotel.hotel.model.request.CreateBookingRequest;
 import com.akkorhotel.hotel.model.request.UpdateBookingRequest;
 import com.akkorhotel.hotel.model.response.GetBookingResponse;
+import com.akkorhotel.hotel.model.response.GetBookingsResponse;
 import com.akkorhotel.hotel.service.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -510,6 +511,121 @@ public class BookingController {
             @PathVariable(name = "bookingId") @Parameter(description = "ID of the booking to delete", required = true) String bookingId) {
 
         return bookingService.deleteBooking(authenticatedUser.getId(), bookingId);
+    }
+
+    @GetMapping
+    @Operation(
+            tags = {"Booking"},
+            summary = "Get all bookings for a user",
+            description = """
+            Retrieves all bookings for the authenticated user.
+            
+            ## Notes:
+            - The user must be authenticated via bearer token.
+            - Returns all bookings associated with the authenticated user.
+            """,
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Bookings retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "User Bookings",
+                                    value = """
+                                    {
+                                        "informations": {
+                                            "bookings": [
+                                                {
+                                                    "_id": "bookingId123",
+                                                    "userId": "userId456",
+                                                    "status": "PENDING",
+                                                    "isPaid": false,
+                                                    "totalPrice": 600.0,
+                                                    "checkInDate": "2025-03-10T14:00:00",
+                                                    "checkOutDate": "2025-03-15T12:00:00",
+                                                    "guests": 3,
+                                                    "hotelRoom": {
+                                                        "_id": "hotelRoomId123",
+                                                        "price": 120.0,
+                                                        "maxOccupancy": 3,
+                                                        "features": ["ROOM_SERVICE", "BALCONY"],
+                                                        "type": "SINGLE"
+                                                    },
+                                                    "hotel": {
+                                                        "_id": "hotelId123",
+                                                        "name": "Hotel Paradise",
+                                                        "picture_list": [
+                                                            "https://example.com/pic1.jpg",
+                                                            "https://example.com/pic2.jpg"
+                                                        ],
+                                                        "amenities": ["PARKING", "BAR", "POOL"],
+                                                        "location": {
+                                                            "address": "123 Paradise St",
+                                                            "city": "Paradise City",
+                                                            "country": "USA"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "_id": "bookingId123",
+                                                    "userId": "userId456",
+                                                    "status": "PENDING",
+                                                    "isPaid": false,
+                                                    "totalPrice": 600.0,
+                                                    "checkInDate": "2025-03-10T14:00:00",
+                                                    "checkOutDate": "2025-03-15T12:00:00",
+                                                    "guests": 3,
+                                                    "hotelRoom": {
+                                                        "_id": "hotelRoomId123",
+                                                        "price": 120.0,
+                                                        "maxOccupancy": 3,
+                                                        "features": ["ROOM_SERVICE", "BALCONY"],
+                                                        "type": "SINGLE"
+                                                    },
+                                                    "hotel": {
+                                                        "_id": "hotelId123",
+                                                        "name": "Hotel Paradise",
+                                                        "picture_list": [
+                                                            "https://example.com/pic1.jpg",
+                                                            "https://example.com/pic2.jpg"
+                                                        ],
+                                                        "amenities": ["PARKING", "BAR", "POOL"],
+                                                        "location": {
+                                                            "address": "123 Paradise St",
+                                                            "city": "Paradise City",
+                                                            "country": "USA"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized access",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Unauthorized",
+                                    value = """
+                                    {
+                                        "error": "Authentication required"
+                                    }
+                                    """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, GetBookingsResponse>> getUserBookings(
+            @AuthenticationPrincipal User authenticatedUser) {
+        return bookingService.getBookings(authenticatedUser.getId());
     }
 
 }

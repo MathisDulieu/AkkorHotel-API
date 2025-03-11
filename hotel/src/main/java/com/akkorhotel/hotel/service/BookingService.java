@@ -11,6 +11,7 @@ import com.akkorhotel.hotel.model.HotelRoom;
 import com.akkorhotel.hotel.model.request.CreateBookingRequest;
 import com.akkorhotel.hotel.model.request.UpdateBookingRequest;
 import com.akkorhotel.hotel.model.response.GetBookingResponse;
+import com.akkorhotel.hotel.model.response.GetBookingsResponse;
 import com.akkorhotel.hotel.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -155,8 +156,12 @@ public class BookingService {
         return ResponseEntity.ok(singletonMap("message", "Booking deleted successfully"));
     }
 
-    public ResponseEntity<String> getBookings() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, GetBookingsResponse>> getBookings(String authenticatedUserId) {
+        List<Booking> bookings = bookingDao.getBookings(authenticatedUserId);
+
+        GetBookingsResponse response = GetBookingsResponse.builder().bookings(bookings).build();
+
+        return ResponseEntity.ok(singletonMap("informations", response));
     }
 
     private void setBookingValues(UpdateBookingRequest request, Booking booking) {

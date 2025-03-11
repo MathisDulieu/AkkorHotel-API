@@ -4,6 +4,7 @@ import com.akkorhotel.hotel.model.Booking;
 import com.akkorhotel.hotel.model.request.CreateBookingRequest;
 import com.akkorhotel.hotel.model.request.UpdateBookingRequest;
 import com.akkorhotel.hotel.model.response.GetBookingResponse;
+import com.akkorhotel.hotel.model.response.GetBookingsResponse;
 import com.akkorhotel.hotel.service.BookingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -165,6 +167,26 @@ class BookingControllerTest {
                 .andExpect(jsonPath("$.message").value("Booking deleted successfully"));
 
         verify(bookingService).deleteBooking(any(), eq(bookingId));
+    }
+
+    @Test
+    void shouldGetUserBookings() throws Exception {
+        // Arrange
+        GetBookingsResponse response = GetBookingsResponse.builder().bookings(List.of(
+                Booking.builder().userId("userId").id("booking1").build(),
+                Booking.builder().userId("userId").id("booking2").build()
+        )).build();
+
+        when(bookingService.getBookings(any())).thenReturn(ResponseEntity.ok(singletonMap("informations", response)));
+
+        // Act & Assert
+        mockMvc.perform(get("/private/booking")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.informations.bookings[0].id").value("booking1"))
+                .andExpect(jsonPath("$.informations.bookings[1].id").value("booking2"));
+
+        verify(bookingService).getBookings(any());
     }
 
 }

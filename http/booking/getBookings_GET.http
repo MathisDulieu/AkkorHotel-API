@@ -1,0 +1,10 @@
+### Get User Bookings - 200
+GET {{url}}/private/booking
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+> {%
+    client.test("Check response status", function (){
+        client.assert(response.status == 200, "Expected 200, but it was " + response.status)
+    })
+%}

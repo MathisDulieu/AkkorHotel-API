@@ -11,6 +11,7 @@ import com.akkorhotel.hotel.model.HotelRoom;
 import com.akkorhotel.hotel.model.request.CreateBookingRequest;
 import com.akkorhotel.hotel.model.request.UpdateBookingRequest;
 import com.akkorhotel.hotel.model.response.GetBookingResponse;
+import com.akkorhotel.hotel.model.response.GetBookingsResponse;
 import com.akkorhotel.hotel.utils.UserUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -785,6 +786,49 @@ class BookingServiceTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "You are not allowed to delete this booking"));
+    }
+
+    @Test
+    void shouldReturnBookingsWithMatchingUserId() {
+        // Arrange
+        String authenticatedUserId = "userId";
+
+        Booking booking1 = Booking.builder()
+                .id("bookingId1")
+                .checkInDate(new Date(1705276800000L))
+                .checkOutDate(new Date(1705612800000L))
+                .userId("userId")
+                .hotelRoom(null)
+                .status(BookingStatus.CONFIRMED)
+                .isPaid(true)
+                .totalPrice(200.0)
+                .build();
+
+        Booking booking2 = Booking.builder()
+                .id("bookingId2")
+                .checkInDate(new Date(1705276800000L))
+                .checkOutDate(new Date(1705612800000L))
+                .userId("userId")
+                .hotelRoom(null)
+                .status(BookingStatus.CONFIRMED)
+                .isPaid(true)
+                .totalPrice(200.0)
+                .build();
+
+        when(bookingDao.getBookings(anyString())).thenReturn(List.of(booking1, booking2));
+
+        // Act
+        ResponseEntity<Map<String, GetBookingsResponse>> response = bookingService.getBookings(authenticatedUserId);
+
+        // Assert
+        GetBookingsResponse expectedResponse = GetBookingsResponse.builder()
+                .bookings(List.of(booking1, booking2))
+                .build();
+
+        verify(bookingDao).getBookings("userId");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("informations", expectedResponse));
     }
 
 }

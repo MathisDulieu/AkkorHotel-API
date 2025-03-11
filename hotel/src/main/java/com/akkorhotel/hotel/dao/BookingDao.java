@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -27,5 +28,9 @@ public class BookingDao {
 
     public void delete(String bookingId) {
         mongoTemplate.remove(new Query(Criteria.where("_id").is(bookingId)), BOOKING_COLLECTION);
+    }
+
+    public List<Booking> getBookings(String userId) {
+        return mongoTemplate.find(new Query(Criteria.where("userId").is(userId)), Booking.class, BOOKING_COLLECTION);
     }
 }

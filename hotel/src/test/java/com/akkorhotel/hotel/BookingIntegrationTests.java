@@ -544,4 +544,177 @@ public class BookingIntegrationTests {
         assertThat(remainingBookings).isEmpty();
     }
 
+    @Test
+    void shouldGetUserBookings() throws Exception {
+        mongoTemplate.insert("""
+        {
+            "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+            "userId": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
+            "status": "CONFIRMED",
+            "isPaid": true,
+            "totalPrice": 500.0,
+            "checkInDate": { "$date": "2025-04-01T14:00:00.000Z" },
+            "checkOutDate": { "$date": "2025-04-05T12:00:00.000Z" },
+            "guests": 2,
+            "hotelRoom": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
+                "type": "SINGLE",
+                "price": 100.0,
+                "maxOccupancy": 3,
+                "features": ["WIFI", "BALCONY"]
+            },
+            "hotel": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce3",
+                "name": "Luxury Hotel",
+                "picture_list": ["https://example.com/hotel1.jpg", "https://example.com/hotel2.jpg"],
+                "amenities": ["SPA", "POOL", "GYM"],
+                "stars": 4,
+                "location": {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce6",
+                    "city": "Dream City",
+                    "country": "USA"
+                }
+            }
+        }
+        """, "BOOKING");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce7",
+            "userId": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
+            "status": "PENDING",
+            "isPaid": false,
+            "totalPrice": 750.0,
+            "checkInDate": { "$date": "2025-05-10T14:00:00.000Z" },
+            "checkOutDate": { "$date": "2025-05-15T12:00:00.000Z" },
+            "guests": 3,
+            "hotelRoom": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce8",
+                "type": "DOUBLE",
+                "price": 150.0,
+                "maxOccupancy": 4,
+                "features": ["ROOM_SERVICE", "HAIR_DRYER"]
+            },
+            "hotel": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
+                "name": "Grand Resort",
+                "picture_list": ["https://example.com/resort1.jpg", "https://example.com/resort2.jpg"],
+                "amenities": ["POOL", "RESTAURANT", "BAR"],
+                "stars": 5,
+                "location": {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce10",
+                    "city": "Paradise City",
+                    "country": "France"
+                }
+            }
+        }
+        """, "BOOKING");
+
+        mongoTemplate.insert("""
+        {
+            "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce11",
+            "userId": "different-user-id",
+            "status": "CONFIRMED",
+            "isPaid": true,
+            "totalPrice": 300.0,
+            "checkInDate": { "$date": "2025-06-01T14:00:00.000Z" },
+            "checkOutDate": { "$date": "2025-06-03T12:00:00.000Z" },
+            "guests": 1,
+            "hotelRoom": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce12",
+                "type": "SINGLE",
+                "price": 100.0,
+                "maxOccupancy": 2,
+                "features": ["WIFI"]
+            },
+            "hotel": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce13",
+                "name": "Budget Inn",
+                "stars": 3,
+                "location": {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce14",
+                    "city": "Small Town",
+                    "country": "USA"
+                }
+            }
+        }
+        """, "BOOKING");
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(get("/private/booking")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + token));
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.informations.bookings").isArray())
+                            .andExpect(jsonPath("$.informations.bookings.length()").value(2))
+                            .andExpect(jsonPath("$.informations.bookings[0].id").value("f2cccd2f-5711-4356-a13a-f687dc983ce1"))
+                            .andExpect(jsonPath("$.informations.bookings[0].userId").value("f2cccd2f-5711-4356-a13a-f687dc983ce9"))
+                            .andExpect(jsonPath("$.informations.bookings[0].status").value("CONFIRMED"))
+                            .andExpect(jsonPath("$.informations.bookings[0].paid").value(true))
+                            .andExpect(jsonPath("$.informations.bookings[0].totalPrice").value(500.0))
+                            .andExpect(jsonPath("$.informations.bookings[0].checkInDate").exists())
+                            .andExpect(jsonPath("$.informations.bookings[0].checkOutDate").exists())
+                            .andExpect(jsonPath("$.informations.bookings[0].guests").value(2))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotelRoom.id").value("f2cccd2f-5711-4356-a13a-f687dc983ce2"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotelRoom.type").value("SINGLE"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotelRoom.price").value(100.0))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotelRoom.maxOccupancy").value(3))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotelRoom.features").isArray())
+                            .andExpect(jsonPath("$.informations.bookings[0].hotelRoom.features.length()").value(2))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotelRoom.features[0]").value("WIFI"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotelRoom.features[1]").value("BALCONY"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.id").value("f2cccd2f-5711-4356-a13a-f687dc983ce3"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.name").value("Luxury Hotel"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.picture_list").isArray())
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.picture_list.length()").value(2))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.picture_list[0]").value("https://example.com/hotel1.jpg"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.picture_list[1]").value("https://example.com/hotel2.jpg"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.amenities").isArray())
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.amenities.length()").value(3))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.amenities[0]").value("SPA"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.amenities[1]").value("POOL"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.amenities[2]").value("GYM"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.stars").value(4))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.location.id").value("f2cccd2f-5711-4356-a13a-f687dc983ce6"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.location.city").value("Dream City"))
+                            .andExpect(jsonPath("$.informations.bookings[0].hotel.location.country").value("USA"))
+                            .andExpect(jsonPath("$.informations.bookings[1].id").value("f2cccd2f-5711-4356-a13a-f687dc983ce7"))
+                            .andExpect(jsonPath("$.informations.bookings[1].userId").value("f2cccd2f-5711-4356-a13a-f687dc983ce9"))
+                            .andExpect(jsonPath("$.informations.bookings[1].status").value("PENDING"))
+                            .andExpect(jsonPath("$.informations.bookings[1].paid").value(false))
+                            .andExpect(jsonPath("$.informations.bookings[1].totalPrice").value(750.0))
+                            .andExpect(jsonPath("$.informations.bookings[1].checkInDate").exists())
+                            .andExpect(jsonPath("$.informations.bookings[1].checkOutDate").exists())
+                            .andExpect(jsonPath("$.informations.bookings[1].guests").value(3))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotelRoom.id").value("f2cccd2f-5711-4356-a13a-f687dc983ce8"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotelRoom.type").value("DOUBLE"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotelRoom.price").value(150.0))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotelRoom.maxOccupancy").value(4))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotelRoom.features").isArray())
+                            .andExpect(jsonPath("$.informations.bookings[1].hotelRoom.features.length()").value(2))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotelRoom.features[0]").value("ROOM_SERVICE"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotelRoom.features[1]").value("HAIR_DRYER"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.id").value("f2cccd2f-5711-4356-a13a-f687dc983ce9"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.name").value("Grand Resort"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.picture_list").isArray())
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.picture_list.length()").value(2))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.picture_list[0]").value("https://example.com/resort1.jpg"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.picture_list[1]").value("https://example.com/resort2.jpg"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.amenities").isArray())
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.amenities.length()").value(3))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.amenities[0]").value("POOL"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.amenities[1]").value("RESTAURANT"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.amenities[2]").value("BAR"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.stars").value(5))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.location.id").value("f2cccd2f-5711-4356-a13a-f687dc983ce10"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.location.city").value("Paradise City"))
+                            .andExpect(jsonPath("$.informations.bookings[1].hotel.location.country").value("France"));
+                });
+    }
+
 }
