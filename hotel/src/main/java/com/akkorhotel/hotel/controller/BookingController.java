@@ -6,6 +6,7 @@ import com.akkorhotel.hotel.model.request.UpdateBookingRequest;
 import com.akkorhotel.hotel.model.response.GetBookingResponse;
 import com.akkorhotel.hotel.service.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -428,5 +429,87 @@ public class BookingController {
         return bookingService.updateBooking(authenticatedUser.getId(), request);
     }
 
+    @DeleteMapping("/{bookingId}")
+    @Operation(
+            tags = {"Booking"},
+            summary = "Delete an existing booking",
+            description = """
+            Allows a user to delete an existing booking.
+            
+            ## Notes:
+            - The user must be authenticated via bearer token.
+            - The bookingId must be provided in the path.
+            - The user can only delete their own bookings.
+            """,
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Booking deleted successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Booking Deleted",
+                                    value = """
+                                    {
+                                        "message": "Booking deleted successfully"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Missing Booking ID",
+                                    value = """
+                                    {
+                                        "error": "BookingId is required"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "User does not have permission to delete this booking",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Forbidden Access",
+                                    value = """
+                                    {
+                                        "error": "You are not allowed to delete this booking"
+                                    }
+                                    """
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Booking not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "Booking Not Found",
+                                    value = """
+                                    {
+                                        "error": "Booking not found"
+                                    }
+                                    """
+                            )
+                    )
+            )
+    })
+    public ResponseEntity<Map<String, String>> deleteBooking(
+            @AuthenticationPrincipal User authenticatedUser,
+            @PathVariable(name = "bookingId") @Parameter(description = "ID of the booking to delete", required = true) String bookingId) {
+
+        return bookingService.deleteBooking(authenticatedUser.getId(), bookingId);
+    }
 
 }

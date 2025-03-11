@@ -1,14 +1,7 @@
-### Update a Booking - 200
-PUT {{url}}/private/booking
+### Delete a Booking - 200
+DELETE {{url}}/private/booking/b7a8ff11-314a-47e2-9108-ca4b1a65c592
 Content-Type: application/json
 Authorization: Bearer {{token}}
-
-{
-  "bookingId": "3a2b1c4d-5678-90ef-abcd-1234567890ef",
-  "guests": 3,
-  "checkInDate": "2025-04-01T18:40:00",
-  "checkOutDate": "2025-04-06T18:40:00"
-}
 
 > {%
     client.test("Check response status", function (){

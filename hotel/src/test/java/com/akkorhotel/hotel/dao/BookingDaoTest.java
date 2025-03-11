@@ -199,4 +199,68 @@ class BookingDaoTest {
         assertThat(bookingOptional).isEmpty();
     }
 
+    @Test
+    void shouldDeleteBooking() {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "bookingId",
+            "userId": "userId",
+            "status": "PENDING",
+            "isPaid": false,
+            "totalPrice": 600.0,
+            "checkInDate": { "$date": "2023-03-10T14:00:00.000Z" },
+            "checkOutDate": { "$date": "2023-03-15T12:00:00.000Z" },
+            "guests": 3,
+            "hotelRoom": {
+                "_id": "hotelRoomId",
+                "price": 120.0,
+                "maxOccupancy": 3,
+                "features": ["ROOM_SERVICE", "BALCONY"],
+                "type": "SINGLE"
+            },
+            "hotel": {
+                "_id": "hotelId",
+                "name": "name",
+                "picture_list": ["https://example.com/pic1.jpg", "https://example.com/pic2.jpg"],
+                "amenities": ["PARKING", "BAR"],
+                "stars": 4,
+                "rooms": [
+                    {
+                        "_id": "hotelRoomId1",
+                        "price": 120.0,
+                        "maxOccupancy": 3,
+                        "features": ["ROOM_SERVICE", "BALCONY"],
+                        "type": "SINGLE"
+                    },
+                    {
+                        "_id": "hotelRoomId2",
+                        "price": 150.0,
+                        "maxOccupancy": 5,
+                        "features": ["WIFI", "HAIR_DRYER"],
+                        "type": "DOUBLE"
+                    }
+                ],
+                "location": {
+                    "_id": "locationId",
+                    "address": "address",
+                    "city": "city",
+                    "state": "state",
+                    "country": "country",
+                    "postalCode": "postalCode",
+                    "googleMapsUrl": "googleMapsUrl"
+                }
+            }
+        }
+        """, "BOOKING");
+
+        // Act
+        bookingDao.delete("bookingId");
+
+        // Assert
+        List<Booking> savedBookings = mongoTemplate.findAll(Booking.class, "BOOKING");
+
+        assertThat(savedBookings).isEmpty();
+    }
+
 }

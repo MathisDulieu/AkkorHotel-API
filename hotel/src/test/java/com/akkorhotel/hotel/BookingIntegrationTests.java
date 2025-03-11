@@ -1,6 +1,7 @@
 package com.akkorhotel.hotel;
 
 import com.akkorhotel.hotel.configuration.DateConfiguration;
+import com.akkorhotel.hotel.model.Booking;
 import com.akkorhotel.hotel.service.JwtTokenService;
 import com.akkorhotel.hotel.service.UuidProvider;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -471,5 +472,76 @@ public class BookingIntegrationTests {
                 ));
     }
 
+    @Test
+    void shouldDeleteBooking() throws Exception {
+        // Arrange
+        mongoTemplate.insert("""
+        {
+            "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce1",
+            "userId": "f2cccd2f-5711-4356-a13a-f687dc983ce9",
+            "status": "CONFIRMED",
+            "isPaid": true,
+            "totalPrice": 500.0,
+            "checkInDate": { "$date": "2025-04-01T14:00:00.000Z" },
+            "checkOutDate": { "$date": "2025-04-05T12:00:00.000Z" },
+            "guests": 2,
+            "hotelRoom": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce2",
+                "type": "SINGLE",
+                "price": 100.0,
+                "maxOccupancy": 3,
+                "features": ["WIFI", "BALCONY"]
+            },
+            "hotel": {
+                "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce3",
+                "name": "Luxury Hotel",
+                "picture_list": ["https://example.com/hotel1.jpg", "https://example.com/hotel2.jpg"],
+                "amenities": ["SPA", "POOL", "GYM"],
+                "stars": 4,
+                "rooms": [
+                    {
+                        "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce4",
+                        "type": "SINGLE",
+                        "price": 100.0,
+                        "maxOccupancy": 3,
+                        "features": ["WIFI", "BALCONY"]
+                    },
+                    {
+                        "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce5",
+                        "type": "DOUBLE",
+                        "price": 150.0,
+                        "maxOccupancy": 4,
+                        "features": ["ROOM_SERVICE", "HAIR_DRYER"]
+                    }
+                ],
+                "location": {
+                    "_id": "f2cccd2f-5711-4356-a13a-f687dc983ce6",
+                    "address": "456 Luxury St",
+                    "city": "Dream City",
+                    "state": "New York",
+                    "country": "USA",
+                    "postalCode": "10001",
+                    "googleMapsUrl": "https://maps.google.com/?q=456+Luxury+St"
+                }
+            }
+        }
+        """, "BOOKING");
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(delete("/private/booking/{bookingId}", "f2cccd2f-5711-4356-a13a-f687dc983ce1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + token));
+
+        // Assert
+        await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    resultActions.andExpect(status().isOk())
+                            .andExpect(jsonPath("$.message").value("Booking deleted successfully"));
+                });
+
+        List<Booking> remainingBookings = mongoTemplate.findAll(Booking.class, "BOOKING");
+        assertThat(remainingBookings).isEmpty();
+    }
 
 }

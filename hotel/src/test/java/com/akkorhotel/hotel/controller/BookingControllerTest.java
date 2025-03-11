@@ -23,6 +23,7 @@ import java.util.Date;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -147,6 +148,23 @@ class BookingControllerTest {
         assertThat(bookingCaptor.getValue().getGuests()).isEqualTo(2);
         assertThat(bookingCaptor.getValue().getCheckInDate()).isEqualTo("2025-04-01T16:00:00");
         assertThat(bookingCaptor.getValue().getCheckOutDate()).isEqualTo("2025-04-05T14:00:00");
+    }
+
+    @Test
+    void shouldDeleteBooking() throws Exception {
+        // Arrange
+        String bookingId = "bookingId123";
+
+        when(bookingService.deleteBooking(any(), eq(bookingId)))
+                .thenReturn(ResponseEntity.ok(singletonMap("message", "Booking deleted successfully")));
+
+        // Act & Assert
+        mockMvc.perform(delete("/private/booking/{bookingId}", bookingId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Booking deleted successfully"));
+
+        verify(bookingService).deleteBooking(any(), eq(bookingId));
     }
 
 }

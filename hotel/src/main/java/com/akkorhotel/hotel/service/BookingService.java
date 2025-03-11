@@ -135,8 +135,24 @@ public class BookingService {
         return ResponseEntity.ok(singletonMap("message", "Booking updated successfully"));
     }
 
-    public ResponseEntity<String> deleteBooking() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, String>> deleteBooking(String authenticatedUserId, String bookingId) {
+        if (isNull(bookingId)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(singletonMap("error", "BookingId is required"));
+        }
+
+        Optional<Booking> optionalBooking = bookingDao.findById(bookingId);
+        if (optionalBooking.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(singletonMap("error", "Booking not found"));
+        }
+
+        Booking booking = optionalBooking.get();
+        if (!booking.getUserId().equals(authenticatedUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(singletonMap("error", "You are not allowed to delete this booking"));
+        }
+
+        bookingDao.delete(bookingId);
+
+        return ResponseEntity.ok(singletonMap("message", "Booking deleted successfully"));
     }
 
     public ResponseEntity<String> getBookings() {

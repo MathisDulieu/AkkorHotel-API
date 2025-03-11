@@ -689,4 +689,102 @@ class BookingServiceTest {
         assertThat(response.getBody()).isEqualTo(singletonMap("error", "The number of guests exceeds the maximum occupancy for this hotel room"));
     }
 
+    @Test
+    void shouldDeleteBooking() {
+        // Arrange
+        String authenticatedUserId = "userId";
+        String bookingId = "bookingId";
+
+        Booking booking = Booking.builder()
+                .id("bookingId")
+                .checkInDate(new Date(1705276800000L))
+                .checkOutDate(new Date(1705612800000L))
+                .userId("userId")
+                .hotelRoom(null)
+                .status(BookingStatus.CONFIRMED)
+                .isPaid(true)
+                .totalPrice(200.0)
+                .build();
+
+        when(bookingDao.findById(anyString())).thenReturn(Optional.of(booking));
+
+        // Act
+        ResponseEntity<Map<String, String>> response = bookingService.deleteBooking(authenticatedUserId, bookingId);
+
+        // Assert
+        InOrder inOrder = inOrder(bookingDao);
+        inOrder.verify(bookingDao).findById("bookingId");
+        inOrder.verify(bookingDao).delete("bookingId");
+        inOrder.verifyNoMoreInteractions();
+
+        verifyNoMoreInteractions(bookingDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(singletonMap("message", "Booking deleted successfully"));
+    }
+
+    @Test
+    void shouldReturnBadRequest_whenBookingIdToDeleteIsNull() {
+        // Arrange
+        String authenticatedUserId = "userId";
+
+        // Act
+        ResponseEntity<Map<String, String>> response = bookingService.deleteBooking(authenticatedUserId, null);
+
+        // Assert
+        verifyNoInteractions(bookingDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "BookingId is required"));
+    }
+
+    @Test
+    void shouldReturnNotFound_whenBookingToDeleteDoesNotExist() {
+        // Arrange
+        String authenticatedUserId = "userId";
+        String bookingId = "bookingId";
+
+        when(bookingDao.findById(anyString())).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Map<String, String>> response = bookingService.deleteBooking(authenticatedUserId, bookingId);
+
+        // Assert
+        verify(bookingDao).findById("bookingId");
+        verifyNoMoreInteractions(bookingDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "Booking not found"));
+    }
+
+    @Test
+    void shouldReturnForbidden_whenUserIsNotOwnerOfBookingToDelete() {
+        // Arrange
+        String authenticatedUserId = "userId";
+        String bookingId = "bookingId";
+
+        Booking booking = Booking.builder()
+                .id("bookingId")
+                .checkInDate(new Date(1705276800000L))
+                .checkOutDate(new Date(1705612800000L))
+                .userId("not_userId")
+                .hotelRoom(null)
+                .status(BookingStatus.CONFIRMED)
+                .isPaid(true)
+                .totalPrice(200.0)
+                .build();
+
+        when(bookingDao.findById(anyString())).thenReturn(Optional.of(booking));
+
+        // Act
+        ResponseEntity<Map<String, String>> response = bookingService.deleteBooking(authenticatedUserId, bookingId);
+
+        // Assert
+        verify(bookingDao).findById("bookingId");
+        verifyNoMoreInteractions(bookingDao);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isEqualTo(singletonMap("error", "You are not allowed to delete this booking"));
+    }
+
 }
